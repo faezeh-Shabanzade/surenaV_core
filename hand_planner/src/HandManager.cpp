@@ -35,7 +35,7 @@ const std::map<int, std::string> kUpperBodyJointNames = {
 // silently passed on (uninitialized Eigen targets crashed the node).
 const std::vector<std::string> kKnownScenarios = {
     "shakeHands", "respect", "byebye", "punching", "perfect", "pointing",
-    "like", "showHands", "home", "a", "b", "circle", "circle2"
+    "like", "showHands", "home", "a", "b", "circle", "circle2", "drawA"
 };
 
 bool isKnownScenario(const std::string& s) {
@@ -49,8 +49,10 @@ std::string knownScenarioList() {
 }
 
 // Steps (200 Hz) needed by reach_curve: 4 s joint-space prep + 4 s approach +
-// 6 waypoints x 4 s per loop. circle = 28 s -> 5600 steps, circle2 = 52 s -> 10400.
+// 6 waypoints x 4 s per loop. circle = 32 s -> 6400 steps, circle2 = 56 s -> 11200.
+// drawA: 4 s prep + 5 chained 4-s segments (approach + 4 strokes) = 24 s -> 4800.
 int curve_steps(const std::string& scenario) {
+    if (scenario == "drawA") return (int)std::ceil((4.0 + 5 * 4.0) / 0.005);
     int loops = (scenario == "circle2") ? 2 : 1;
     return (int)std::ceil((8.0 + loops * 6 * 4.0) / 0.005);
 }
@@ -249,6 +251,7 @@ void HandManager::micArray_callback(const std_msgs::Float64 &msg) {
 }
 
 void HandManager::hallSensorCallback(const std_msgs::Int32& msg){
+    hall_sensors_seen_ = true;  // homing sensors alive (real robot only)
     if (!(msg.data &(1<<8))){      // Sensor 1: RIght Elbow
         hall_sensors_state[0] = 1;
     } 
@@ -461,6 +464,98 @@ VectorXd HandManager::reach_curve(S5_hand& hand_model, VectorXd& q_arm, MatrixXd
             reach_seg(cpt(th_m, loop), cpt(th_b, loop));
         }
     }
+    return q_arm;
+}
+
+VectorXd HandManager::reach_drawA(S5_hand& hand_model, VectorXd& q_arm, MatrixXd& qref_arm, double& sum_arm, VectorXd& q_init_arm) {
+    // Trace the letter "A" with the pointing finger in a vertical plane in
+    // front of the body (x = const). Uses the same waypoint-chained min-jerk
+    // tracer as reach_curve (position-only QP: a fixed orientation demand
+    // steals the velocity budget near the pointing gimbal lock and stalls the
+    // trace). Strokes: bottom-left -> apex -> bottom-right, then crossbar
+    // left -> right. 4 s joint-space prep/hold + 5 chained 4-s segments
+    // (approach + 4 strokes) = 24 s (t_total is ignored, like circle/circle2).
+    // Letter size: 14 cm tall x 10 cm wide. The RIGHT hand draws at
+    // y = -0.10 m (letter reads correctly for an observer facing the robot);
+    // the LEFT hand is the exact y-mirror.
+    const double sgn = (hand_model.hand_type == RIGHT) ? 1.0 : -1.0;
+    const double X_PLANE = 0.35;   // vertical drawing plane in front of the body [m]
+    const double Y_C     = 0.10;   // |y| of the letter centerline [m]
+    const double Z_TOP   = -0.05;  // apex height [m]
+    const double H       = 0.14;   // letter height [m]
+    const double W       = 0.10;   // letter width [m]
+
+    // y_off is the letter-local horizontal coordinate (-W/2 = letter left).
+    // Letter-left maps to the observer's LEFT (y = -sgn*(Y_C + W/2) for the
+    // right hand: an observer facing the robot has -y on their left), so the
+    // right hand draws an "A" that reads correctly from the front; the left
+    // hand traces the exact y-mirror (the mirrored both-hands variant).
+    auto P = [&](double y_off, double z) {
+        return Vector3d(X_PLANE, -sgn * (Y_C - y_off), z);
+    };
+    const Vector3d p_bl   = P(-W / 2.0, Z_TOP - H);          // bottom-left
+    const Vector3d p_apex = P(0.0,       Z_TOP);             // apex
+    const Vector3d p_br   = P(+W / 2.0, Z_TOP - H);          // bottom-right
+    const double z_bar  = Z_TOP - H + 0.4 * H;               // crossbar at 40% height
+    const double half_w = 0.5 * W * (1.0 - 0.4) - 0.006;     // inside the legs
+    const Vector3d p_cl = P(-half_w, z_bar);
+    const Vector3d p_cr = P(+half_w, z_bar);
+
+    // ---- joint-space prep: blend current arm joints to q_init_arm over 2 s ----
+    int j_count = (int)std::ceil(2.0 / T);
+    VectorXd q0(7), q1(7);
+    for (int i = 0; i < 7; i++) { q0(i) = q_arm(i); q1(i) = q_init_arm(i); }
+    for (int count = 0; count < j_count; count++) {
+        double alpha = double(count + 1) / j_count;
+        for (int i = 0; i < 7; i++) qref_arm.col(count) = q0 + alpha * (q1 - q0) - q_init_arm;
+    }
+    for (int i = 0; i < 7; i++) q_arm(i) = q1(i);
+    // hold the initial pose for another 2 s (same as reach_curve)
+    for (int count = j_count; count < j_count + (int)std::ceil(2.0 / T); count++) {
+        qref_arm.col(count) = q_arm - q_init_arm;   // = 0
+    }
+    sum_arm = 4.0;
+
+    // ---- chained 4-s min-jerk strokes (reach_target pattern, t_r=[0,2,4]) ----
+    auto reach_seg = [&](Vector3d r_middle, Vector3d r_target) {
+        const double t_reach = 4.0;
+        hand_model.HO_FK_palm(q_arm);
+        Vector3d r_from = hand_model.r_palm;
+        MatrixXd t_r(1, 3); t_r << 0, 2, 4;
+        MatrixXd P_x(1, 3), P_y(1, 3), P_z(1, 3);
+        P_x << r_from(0), r_middle(0), r_target(0);
+        P_y << r_from(1), r_middle(1), r_target(1);
+        P_z << r_from(2), r_middle(2), r_target(2);
+        MatrixXd V_inf(1, 3); V_inf << 0, INFINITY, 0;
+        MatrixXd A_inf(1, 3); A_inf << 0, INFINITY, 0;
+        MatrixXd X_coef = coef_generator.Coefficient(t_r, P_x, V_inf, A_inf);
+        MatrixXd Y_coef = coef_generator.Coefficient(t_r, P_y, V_inf, A_inf);
+        MatrixXd Z_coef = coef_generator.Coefficient(t_r, P_z, V_inf, A_inf);
+        int M = (int)std::ceil(t_reach / T);
+        for (int count = 0; count < M; count++) {
+            double time_r = count * T;
+            int interval = (time_r < 2.0) ? 0 : 1;
+            Vector3d V_curr(
+                coef_generator.GetAccVelPos(X_coef.row(interval), time_r, t_r(interval), 5)(0, 1),
+                coef_generator.GetAccVelPos(Y_coef.row(interval), time_r, t_r(interval), 5)(0, 1),
+                coef_generator.GetAccVelPos(Z_coef.row(interval), time_r, t_r(interval), 5)(0, 1));
+            hand_model.update_hand(q_arm, V_curr, r_target, Matrix3d::Identity());
+            hand_model.doQP_position(q_arm);
+            q_arm = hand_model.q_next;
+            int gi = (int)std::lround(sum_arm / T) + count;
+            if (gi < qref_arm.cols()) qref_arm.col(gi) = q_arm - q_init_arm;
+        }
+        sum_arm += 4.0;
+    };
+
+    // approach onto the letter, then the four strokes of the "A"
+    hand_model.HO_FK_palm(q_arm);
+    Vector3d r_start = hand_model.r_palm;
+    reach_seg(0.5 * (r_start + p_bl), p_bl);   // move to bottom-left
+    reach_seg(0.5 * (p_bl + p_apex), p_apex);  // leg 1: bottom-left -> apex
+    reach_seg(0.5 * (p_apex + p_br), p_br);    // leg 2: apex -> bottom-right
+    reach_seg(0.5 * (p_br + p_cl), p_cl);      // crossbar in: bottom-right -> cross-left
+    reach_seg(0.5 * (p_cl + p_cr), p_cr);      // crossbar: left -> right
     return q_arm;
 }
 
@@ -866,6 +961,10 @@ bool HandManager::single_hand(hand_planner::move_hand_single::Request &req,
                 int M_curve = curve_steps(sc);
                 qref_r.resize(7, M_curve);
                 ee_pos = reach_curve(hand_func_R, q_ra, qref_r, sum_r, q_init_r, sc);
+            } else if (sc == "drawA") {
+                int M_curve = curve_steps(sc);
+                qref_r.resize(7, M_curve);
+                ee_pos = reach_drawA(hand_func_R, q_ra, qref_r, sum_r, q_init_r);
             } else {
                 Eigen::MatrixXd result = scenario_target(RIGHT, sc, i, ee_pos, "prev");
                 ee_pos = reach_target(hand_func_R, q_ra, qref_r, sum_r, q_init_r, result, sc, M);
@@ -883,11 +982,18 @@ bool HandManager::single_hand(hand_planner::move_hand_single::Request &req,
         }
 
         // Optional concurrent finger animation on the moving (right) hand.
-        const bool finger_anim_active = !req.finger_scenario.empty() &&
-            finger_control_->startAnimation(req.finger_scenario, HandSelection::RIGHT_HAND, req.t_total, 1);
-        if (!req.finger_scenario.empty() && !finger_anim_active)
+        // drawA auto-applies the pointing finger unless the caller chose one.
+        bool has_drawA = false;
+        for (int i = 0; i < req.scen_count && i < (int)req.scenario.size(); ++i)
+            if (req.scenario[i] == "drawA") has_drawA = true;
+        std::string finger_scen = req.finger_scenario;
+        double finger_dur = req.t_total;
+        if (finger_scen.empty() && has_drawA) { finger_scen = "point"; finger_dur = 24.0; }
+        const bool finger_anim_active = !finger_scen.empty() &&
+            finger_control_->startAnimation(finger_scen, HandSelection::RIGHT_HAND, finger_dur, 1);
+        if (!finger_scen.empty() && !finger_anim_active)
             ROS_WARN("Unknown finger_scenario '%s' - arm motion continues without finger animation.",
-                     req.finger_scenario.c_str());
+                     finger_scen.c_str());
 
         for (int id = 0; id < qref_r.cols(); ++id) {
             Eigen::VectorXd q_abs  = q_init_r + qref_r.col(id);
@@ -936,6 +1042,10 @@ bool HandManager::single_hand(hand_planner::move_hand_single::Request &req,
                 int M_curve = curve_steps(sc);
                 qref_l.resize(7, M_curve);
                 ee_pos = reach_curve(hand_func_L, q_la, qref_l, sum_l, q_init_l, sc);
+            } else if (sc == "drawA") {
+                int M_curve = curve_steps(sc);
+                qref_l.resize(7, M_curve);
+                ee_pos = reach_drawA(hand_func_L, q_la, qref_l, sum_l, q_init_l);
             } else {
                 Eigen::MatrixXd result = scenario_target(LEFT, sc, i, ee_pos, "prev");
                 ee_pos = reach_target(hand_func_L, q_la, qref_l, sum_l, q_init_l, result, sc, M);
@@ -955,11 +1065,18 @@ bool HandManager::single_hand(hand_planner::move_hand_single::Request &req,
         }
 
         // Optional concurrent finger animation on the moving (left) hand.
-        const bool finger_anim_active = !req.finger_scenario.empty() &&
-            finger_control_->startAnimation(req.finger_scenario, HandSelection::LEFT_HAND, req.t_total, 1);
-        if (!req.finger_scenario.empty() && !finger_anim_active)
+        // drawA auto-applies the pointing finger unless the caller chose one.
+        bool has_drawA = false;
+        for (int i = 0; i < req.scen_count && i < (int)req.scenario.size(); ++i)
+            if (req.scenario[i] == "drawA") has_drawA = true;
+        std::string finger_scen = req.finger_scenario;
+        double finger_dur = req.t_total;
+        if (finger_scen.empty() && has_drawA) { finger_scen = "point"; finger_dur = 24.0; }
+        const bool finger_anim_active = !finger_scen.empty() &&
+            finger_control_->startAnimation(finger_scen, HandSelection::LEFT_HAND, finger_dur, 1);
+        if (!finger_scen.empty() && !finger_anim_active)
             ROS_WARN("Unknown finger_scenario '%s' - arm motion continues without finger animation.",
-                     req.finger_scenario.c_str());
+                     finger_scen.c_str());
 
         for (int id = 0; id < qref_l.cols(); ++id) {
             Eigen::VectorXd q_abs_l  = q_init_l + qref_l.col(id);
@@ -1041,7 +1158,14 @@ bool HandManager::both_hands(hand_planner::move_hand_both::Request &req, hand_pl
         q_la << 10.0*M_PI/180.0, 10.0*M_PI/180.0, 0.0, -25.0*M_PI/180.0, 0.0, 0.0, 0.0;
     }
     q_init_l = q_la;
-    q_left_baseline_ = q_left_state_;
+    // FIX (left-arm transition bug): q_left_baseline_ used to be reset to
+    // q_left_state_ on EVERY both_hands call, while q_right_baseline_ is set
+    // once and kept. Since the arm channels are sent as (q_abs - baseline),
+    // re-baselining the left arm at each call made the left channels collapse
+    // toward zero whenever a new scenario started (e.g. pointing -> byebye),
+    // so the left arm jumped to a wrong pose mid-transition. Use the same
+    // set-once rule as the right arm so both sides share one constant
+    // baseline (the default home pose) for the lifetime of the node.
     if (q_left_baseline_.size() != 7) q_left_baseline_ = q_init_l;
     hand_func_L.HO_FK_palm(q_la);
     next_ini_ee_posL = hand_func_L.r_palm;
@@ -1053,6 +1177,10 @@ bool HandManager::both_hands(hand_planner::move_hand_both::Request &req, hand_pl
             int M_curve = curve_steps(sc);
             qref_r.resize(7, M_curve);
             ee_pos_r = reach_curve(hand_func_R, q_ra, qref_r, sum_r, q_init_r, sc);
+        } else if (sc == "drawA") {
+            int M_curve = curve_steps(sc);
+            qref_r.resize(7, M_curve);
+            ee_pos_r = reach_drawA(hand_func_R, q_ra, qref_r, sum_r, q_init_r);
         } else {
             Eigen::MatrixXd result_r = scenario_target(RIGHT, sc, i, ee_pos_r, "prev");
             ee_pos_r = reach_target(hand_func_R, q_ra, qref_r, sum_r, q_init_r, result_r, sc, M_req);
@@ -1064,6 +1192,10 @@ bool HandManager::both_hands(hand_planner::move_hand_both::Request &req, hand_pl
             int M_curve = curve_steps(sc);
             qref_l.resize(7, M_curve);
             ee_pos_l = reach_curve(hand_func_L, q_la, qref_l, sum_l, q_init_l, sc);
+        } else if (sc == "drawA") {
+            int M_curve = curve_steps(sc);
+            qref_l.resize(7, M_curve);
+            ee_pos_l = reach_drawA(hand_func_L, q_la, qref_l, sum_l, q_init_l);
         } else {
             Eigen::MatrixXd result_l = scenario_target(LEFT, sc, i, ee_pos_l, "prev");
             ee_pos_l = reach_target(hand_func_L, q_la, qref_l, sum_l, q_init_l, result_l, sc, M_req);
@@ -1073,6 +1205,16 @@ bool HandManager::both_hands(hand_planner::move_hand_both::Request &req, hand_pl
     int Mr = qref_r.cols();
     int Ml = qref_l.cols();
     int M  = std::max(Mr, Ml);
+
+    // drawA: apply the static pointing finger pose to each drawing hand
+    // (move_hand_both has no finger_scenario field, so the letter is drawn
+    // with the index extended by default).
+    for (int i = 0; i < req.scenR_count && i < (int)req.scenarioR.size(); ++i) {
+        if (req.scenarioR[i] == "drawA") { finger_control_->executeScenario("point", HandSelection::RIGHT_HAND); break; }
+    }
+    for (int i = 0; i < req.scenL_count && i < (int)req.scenarioL.size(); ++i) {
+        if (req.scenarioL[i] == "drawA") { finger_control_->executeScenario("point", HandSelection::LEFT_HAND); break; }
+    }
 
     // --- Execution Phase ---
     for (int id = 0; id < M; ++id) {
@@ -2304,7 +2446,65 @@ bool HandManager::arm_back_to_home_handler(hand_planner::arm_back_to_home::Reque
 
 bool HandManager::arm_home_service_handler(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
     ros::Rate rate_(rate);
-    
+
+    // ------------------------------------------------------------------
+    // SIMULATION PATH (FIX: arm_home moved elbows backward forever in Gazebo)
+    //
+    // The hall-sensor homing state machine below waits for bits of
+    // /surena/hall_state. In Gazebo nothing publishes that topic, so
+    // hall_sensors_state stays all-zero and the ELBOW/YAW/PITCH/ROLL_HOMING
+    // states keep ramping their joints forever - the arms visibly drift
+    // backward and never stop. If no hall-sensor message has ever arrived,
+    // blend both arms smoothly from their current tracked pose to the
+    // default home pose instead (same pose the scenario handlers use as the
+    // initial state). The hardware homing path below is untouched.
+    // ------------------------------------------------------------------
+    if (!hall_sensors_seen_) {
+        ROS_INFO("arm_home: no hall-sensor messages seen (Gazebo) - blending arms directly to home pose.");
+
+        const double BLEND_TIME = 3.0;                 // s
+        const int blend_steps = static_cast<int>(BLEND_TIME / T);
+
+        const double d2r = M_PI / 180.0;
+        Eigen::VectorXd q_home_r(7), q_home_l(7);
+        q_home_r << 10.0*d2r, -10.0*d2r, 0.0, -25.0*d2r, 0.0, 0.0, 0.0;
+        q_home_l << 10.0*d2r,  10.0*d2r, 0.0, -25.0*d2r, 0.0, 0.0, 0.0;
+
+        // Start from the last tracked absolute state (or the home pose if unknown).
+        Eigen::VectorXd start_r = (q_right_state_.size() == 7) ? Eigen::VectorXd(q_right_state_) : q_home_r;
+        Eigen::VectorXd start_l = (q_left_state_.size()  == 7) ? Eigen::VectorXd(q_left_state_)  : q_home_l;
+
+        // Baseline = start pose, so the sent arm channels (q_abs - baseline)
+        // start at zero and grow smoothly - no jump at the first publish.
+        q_right_baseline_ = start_r;
+        q_left_baseline_  = start_l;
+
+        for (int s = 0; s <= blend_steps && ros::ok(); ++s) {
+            double a = static_cast<double>(s) / blend_steps;
+            a = a * a * (3.0 - 2.0 * a);               // smoothstep
+            Eigen::VectorXd q_right_current = start_r + a * (q_home_r - start_r);
+            Eigen::VectorXd q_left_current  = start_l + a * (q_home_l - start_l);
+
+            Eigen::VectorXd q_send_right = q_right_current;
+            q_send_right.head(4) = q_right_current.head(4) - q_right_baseline_.head(4);
+            Eigen::VectorXd q_send_left = q_left_current;
+            q_send_left.head(4) = q_left_current.head(4) - q_left_baseline_.head(4);
+
+            sendHandMotorCommands(q_send_right, q_send_left, Eigen::Vector3d(0, 0, 0));
+            publish_trigger_pub_.publish(std_msgs::Empty());
+            rate_.sleep();
+        }
+
+        // Persist the home pose exactly like the hardware path does.
+        q_right_baseline_ = q_home_r;
+        q_left_baseline_  = q_home_l;
+        q_right_state_    = q_home_r;
+        q_left_state_     = q_home_l;
+
+        ROS_INFO("Arm homing completed successfully - arms blended to home pose (simulation).");
+        return true;
+    }
+
     // Reset hall sensor states
     for (int i = 0; i < 8; i++) {
         hall_sensors_state[i] = 0;

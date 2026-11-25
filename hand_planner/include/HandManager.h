@@ -132,6 +132,11 @@ private:
     mutable std::mutex hjoint_sensor_mutex_;
     bool hjoint_sensor_received_ = false;
     int hall_sensors_state[8] = {};
+    // Set true the first time a /surena/hall_state message arrives. On the real
+    // robot this proves the homing sensors are alive; in Gazebo no such
+    // publisher exists, so arm_home uses a direct blend to the home pose
+    // instead of the hall-sensor homing state machine.
+    bool hall_sensors_seen_ = false;
     std_msgs::Float64MultiArray joint_angles_gazebo_;
     VectorXd q_rad_teleop;
 
@@ -190,6 +195,7 @@ private:
     // circle waypoints, position-only QP (verified numerically: <=0.2 mm waypoint
     // error per hand, mirror-symmetric). See README "curve-drawing scenarios".
     VectorXd reach_curve(S5_hand& hand_model, VectorXd& q_arm, MatrixXd& qref_arm, double& sum_arm, VectorXd& q_init_arm, string scenario);
+    VectorXd reach_drawA(S5_hand& hand_model, VectorXd& q_arm, MatrixXd& qref_arm, double& sum_arm, VectorXd& q_init_arm);
     Vector2d head_follow_hand(HandType type, const VectorXd& q_arm);
 
     bool single_hand(hand_planner::move_hand_single::Request &req, hand_planner::move_hand_single::Response &res);

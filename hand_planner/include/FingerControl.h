@@ -45,12 +45,16 @@ static const std::vector<int>    kMimicSourceIdx  = {0, 1, 2, 3, 5};   // actuat
 
 // Per-channel sign applied to the GAZEBO joint command only (hardware servo
 // values are unaffected), in channel order [finger1..4, lower_thumb, middle_thumb].
-// Both default to +1: with the pristine SolidWorks URDF a positive flex angle
-// curls the fingers toward the palm on both hands. If a joint ever flexes the
-// wrong way on the robot, flip the corresponding entry here - no other change
-// is needed.
-static const std::vector<double> kGazeboSignR = { 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
-static const std::vector<double> kGazeboSignL = { 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
+// finger1..4 and middle_thumb are +1: with the pristine SolidWorks URDF a
+// positive flex angle curls them toward the palm on both hands.
+// FIX (lower_thumb moves backward): the lower_thumb axes in the URDF are
+// handed (r_lower_thumb axis z<0, l_lower_thumb axis z>0), so with the shared
+// flex-angle convention the Gazebo lower_thumb joints rotated the opposite
+// way to the hardware servos on BOTH hands. kGazeboSignR/L[4] = -1 negates
+// the Gazebo lower_thumb command only; /set_joint_angle reads the same
+// tables, so both command paths are corrected by this single change.
+static const std::vector<double> kGazeboSignR = { 1.0, 1.0, 1.0, 1.0, -1.0, 1.0};
+static const std::vector<double> kGazeboSignL = { 1.0, 1.0, 1.0, 1.0, -1.0, 1.0};
 
 // Servo <-> angle mapping (tunable; see finger_scenarios.json "servo_mapping")
 static const int    kServoOpen   = 255;   // servo value at fully open hand
