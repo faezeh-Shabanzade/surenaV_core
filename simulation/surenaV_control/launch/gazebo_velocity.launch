@@ -1,0 +1,86 @@
+<launch>
+  <!-- ==================================================================== -->
+  <!-- Surena V (Gazebo Classic), VELOCITY control session                 -->
+  <!--                                                                      -->
+  <!-- Spawns the velocity-interface URDF variant (all 51 transmissions on  -->
+  <!-- hardware_interface/VelocityJointInterface) and starts direct        -->
+  <!-- velocity controllers (velocity_controllers/JointVelocityController). -->
+  <!-- No PID loop runs in ROS: the command maps to the simulated actuator  -->
+  <!-- internal velocity servo (SetParam("vel") in DefaultRobotHWSim,      -->
+  <!-- torque-capped by the URDF effort limit).                             -->
+  <!--                                                                      -->
+  <!-- NOTE: velocity controllers command 0 rad/s on activation = safe      -->
+  <!-- initial state. Group trajectory controllers are NOT available in     -->
+  <!-- this session: ROS 1 joint_trajectory_controller is compiled for the  -->
+  <!-- position interface only.                                             -->
+  <!-- ==================================================================== -->
+
+  <arg name="paused" default="true"/>
+  <arg name="use_sim_time" default="true"/>
+  <arg name="gui" default="true"/>
+  <arg name="headless" default="false"/>
+  <arg name="debug" default="false"/>
+  <arg name="world" default="$(find surenaV_gazebo)/worlds/surenaV.world"/>
+
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(arg world)"/>
+    <arg name="debug" value="$(arg debug)"/>
+    <arg name="gui" value="$(arg gui)"/>
+    <arg name="paused" value="$(arg paused)"/>
+    <arg name="use_sim_time" value="$(arg use_sim_time)"/>
+    <arg name="headless" value="$(arg headless)"/>
+  </include>
+
+  <!-- Velocity-interface URDF variant (generated from the hands URDF) -->
+  <param name="robot_description"
+    textfile="$(find surenaV_control)/urdf/surenaV_velocity.urdf"/>
+
+  <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false"
+    output="screen" args="-urdf -model surenaV -param robot_description"/>
+
+  <rosparam file="$(find surenaV_control)/config/velocity_controllers.yaml" command="load"/>
+  <rosparam file="$(find surenaV_control)/config/joint_limits.yaml" command="load"/>
+
+  <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
+    output="screen" ns="/surenaV"
+    args="joint_state_controller
+          head_yaw_joint_velocity_controller head_pitch_joint_velocity_controller
+          head_roll_joint_velocity_controller
+          r_hip_yaw_joint_velocity_controller r_hip_roll_joint_velocity_controller
+          r_hip_pitch_joint_velocity_controller r_knee_joint_velocity_controller
+          r_ankle_pitch_joint_velocity_controller r_ankle_roll_joint_velocity_controller
+          l_hip_yaw_joint_velocity_controller l_hip_roll_joint_velocity_controller
+          l_hip_pitch_joint_velocity_controller l_knee_joint_velocity_controller
+          l_ankle_pitch_joint_velocity_controller l_ankle_roll_joint_velocity_controller
+          r_arm_pitch_joint_velocity_controller r_arm_roll_joint_velocity_controller
+          r_elbow_pitch_joint_velocity_controller r_forearm_roll_joint_velocity_controller
+          r_forearm_link_joint_velocity_controller r_hand_pitch_joint_velocity_controller
+          r_hand_roll_joint_velocity_controller
+          l_arm_pitch_joint_velocity_controller l_arm_roll_joint_velocity_controller
+          l_elbow_pitch_joint_velocity_controller l_forearm_roll_joint_velocity_controller
+          l_forearm_link_joint_velocity_controller l_hand_pitch_joint_velocity_controller
+          l_hand_roll_joint_velocity_controller
+          r_lower_thumb_joint_velocity_controller r_middle_thumb_joint_velocity_controller
+          r_upper_thumb_joint_velocity_controller r_middle_finger1_joint_velocity_controller
+          r_upper_finger1_joint_velocity_controller r_middle_finger2_joint_velocity_controller
+          r_upper_finger2_joint_velocity_controller r_middle_finger3_joint_velocity_controller
+          r_upper_finger3_joint_velocity_controller r_middle_finger4_joint_velocity_controller
+          r_upper_finger4_joint_velocity_controller
+          l_lower_thumb_joint_velocity_controller l_middle_thumb_joint_velocity_controller
+          l_upper_thumb_joint_velocity_controller l_middle_finger1_joint_velocity_controller
+          l_upper_finger1_joint_velocity_controller l_middle_finger2_joint_velocity_controller
+          l_upper_finger2_joint_velocity_controller l_middle_finger3_joint_velocity_controller
+          l_upper_finger3_joint_velocity_controller l_middle_finger4_joint_velocity_controller
+          l_upper_finger4_joint_velocity_controller"/>
+
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"
+    respawn="false" output="screen">
+    <remap from="/joint_states" to="/surenaV/joint_states"/>
+  </node>
+
+  <!-- Existing bridge, retargeted at the velocity controllers -->
+  <node name="gazebo_bridge_node" pkg="surenaV_gazebo" type="gazebo_bridge_node"
+    output="screen">
+    <param name="controller_suffix" value="velocity"/>
+  </node>
+</launch>

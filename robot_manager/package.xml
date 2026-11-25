@@ -69,6 +69,7 @@
   <exec_depend>message_runtime</exec_depend> 
 
   <depend>hand_planner</depend>
+  <depend>surena_msgs</depend>
   <depend>gait_planner</depend>
   <depend>yaml-cpp</depend>
   

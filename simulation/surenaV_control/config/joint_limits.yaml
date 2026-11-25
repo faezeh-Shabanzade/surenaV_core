@@ -1,0 +1,314 @@
+# Joint limits for Surena V -- values taken from the URDF <limit> tags.
+# effort=1000 on body joints is the SolidWorks export placeholder, NOT a
+# verified actuator spec (real EPOS4 torque limits unknown -> marked UNKNOWN).
+# Acceleration limits are not in the URDF; the values below are conservative
+# defaults used only by the PyBullet command ramping, not verified specs.
+#
+surenaV:
+  joint_limits:
+    head_yaw_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    head_pitch_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    head_roll_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    r_hip_yaw_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    r_hip_roll_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    r_hip_pitch_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    r_knee_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    r_ankle_pitch_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    r_ankle_roll_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    l_hip_yaw_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    l_hip_roll_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    l_hip_pitch_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    l_knee_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    l_ankle_pitch_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    l_ankle_roll_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    r_arm_pitch_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    r_arm_roll_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    r_elbow_pitch_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    r_forearm_roll_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    r_forearm_link_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    r_hand_pitch_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    r_hand_roll_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    r_middle_finger1_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 2.0    # URDF
+      max_acceleration: 2.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1.0    # URDF
+    r_upper_finger1_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 2.0    # URDF
+      max_acceleration: 2.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1.0    # URDF
+    r_middle_finger2_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 2.0    # URDF
+      max_acceleration: 2.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1.0    # URDF
+    r_upper_finger2_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 2.0    # URDF
+      max_acceleration: 2.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1.0    # URDF
+    r_middle_finger3_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 2.0    # URDF
+      max_acceleration: 2.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1.0    # URDF
+    r_upper_finger3_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 2.0    # URDF
+      max_acceleration: 2.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1.0    # URDF
+    r_middle_finger4_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 2.0    # URDF
+      max_acceleration: 2.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1.0    # URDF
+    r_upper_finger4_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 2.0    # URDF
+      max_acceleration: 2.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1.0    # URDF
+    r_lower_thumb_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 2.0    # URDF
+      max_acceleration: 2.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1.0    # URDF
+    r_middle_thumb_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 2.0    # URDF
+      max_acceleration: 2.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1.0    # URDF
+    r_upper_thumb_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 2.0    # URDF
+      max_acceleration: 2.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1.0    # URDF
+    l_arm_pitch_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    l_arm_roll_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    l_elbow_pitch_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    l_forearm_roll_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    l_forearm_link_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    l_hand_pitch_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    l_hand_roll_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 0.5    # URDF
+      max_acceleration: 1.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1000.0  # PLACEHOLDER from URDF export, not verified
+    l_middle_finger1_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 2.0    # URDF
+      max_acceleration: 2.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1.0    # URDF
+    l_upper_finger1_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 2.0    # URDF
+      max_acceleration: 2.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1.0    # URDF
+    l_middle_finger2_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 2.0    # URDF
+      max_acceleration: 2.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1.0    # URDF
+    l_upper_finger2_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 2.0    # URDF
+      max_acceleration: 2.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1.0    # URDF
+    l_middle_finger3_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 2.0    # URDF
+      max_acceleration: 2.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1.0    # URDF
+    l_upper_finger3_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 2.0    # URDF
+      max_acceleration: 2.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1.0    # URDF
+    l_middle_finger4_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 2.0    # URDF
+      max_acceleration: 2.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1.0    # URDF
+    l_upper_finger4_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 2.0    # URDF
+      max_acceleration: 2.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1.0    # URDF
+    l_lower_thumb_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 2.0    # URDF
+      max_acceleration: 2.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1.0    # URDF
+    l_middle_thumb_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 2.0    # URDF
+      max_acceleration: 2.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1.0    # URDF
+    l_upper_thumb_joint:
+      lower: -1.57            # URDF
+      upper: 1.57            # URDF
+      max_velocity: 2.0    # URDF
+      max_acceleration: 2.0  # DEFAULT, not a verified actuator spec
+      max_effort: 1.0    # URDF

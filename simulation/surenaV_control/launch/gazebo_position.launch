@@ -1,0 +1,96 @@
+<launch>
+  <!-- ==================================================================== -->
+  <!-- Surena V (Gazebo Classic), POSITION control session                 -->
+  <!--                                                                      -->
+  <!-- Spawns the position-interface URDF variant (all 51 transmissions on  -->
+  <!-- hardware_interface/PositionJointInterface) and starts the direct    -->
+  <!-- position controllers (position_controllers/JointPositionController). -->
+  <!-- No PID loop runs in ROS: the command goes straight to the simulated  -->
+  <!-- actuator's internal position servo (SetAngle in DefaultRobotHWSim).  -->
+  <!--                                                                      -->
+  <!-- Keep paused:=true (default): controllers must latch their zero       -->
+  <!-- setpoints before the first physics step, otherwise the robot sags    -->
+  <!-- and holds the sagged pose.                                           -->
+  <!-- ==================================================================== -->
+
+  <arg name="paused" default="true"/>
+  <arg name="use_sim_time" default="true"/>
+  <arg name="gui" default="true"/>
+  <arg name="headless" default="false"/>
+  <arg name="debug" default="false"/>
+  <arg name="world" default="$(find surenaV_gazebo)/worlds/surenaV.world"/>
+
+  <!-- Gazebo Classic -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(arg world)"/>
+    <arg name="debug" value="$(arg debug)"/>
+    <arg name="gui" value="$(arg gui)"/>
+    <arg name="paused" value="$(arg paused)"/>
+    <arg name="use_sim_time" value="$(arg use_sim_time)"/>
+    <arg name="headless" value="$(arg headless)"/>
+  </include>
+
+  <!-- Position-interface URDF variant (generated from the hands URDF) -->
+  <param name="robot_description"
+    textfile="$(find surenaV_control)/urdf/surenaV_position.urdf"/>
+
+  <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false"
+    output="screen" args="-urdf -model surenaV -param robot_description"/>
+
+  <!-- Controller configs -->
+  <rosparam file="$(find surenaV_control)/config/position_controllers.yaml" command="load"/>
+  <rosparam file="$(find surenaV_control)/config/trajectory_controllers.yaml" command="load"/>
+  <rosparam file="$(find surenaV_control)/config/joint_limits.yaml" command="load"/>
+
+  <!-- Start joint-state + all 51 individual position controllers;
+       load the group trajectory controllers stopped (activate them with
+       controller_manager/switch_controller, see scripts/switch_control_mode.py) -->
+  <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
+    output="screen" ns="/surenaV"
+    args="joint_state_controller
+          --stopped
+          head_trajectory_controller r_leg_trajectory_controller
+          l_leg_trajectory_controller r_arm_trajectory_controller
+          l_arm_trajectory_controller r_hand_trajectory_controller
+          l_hand_trajectory_controller
+          head_yaw_joint_position_controller head_pitch_joint_position_controller
+          head_roll_joint_position_controller
+          r_hip_yaw_joint_position_controller r_hip_roll_joint_position_controller
+          r_hip_pitch_joint_position_controller r_knee_joint_position_controller
+          r_ankle_pitch_joint_position_controller r_ankle_roll_joint_position_controller
+          l_hip_yaw_joint_position_controller l_hip_roll_joint_position_controller
+          l_hip_pitch_joint_position_controller l_knee_joint_position_controller
+          l_ankle_pitch_joint_position_controller l_ankle_roll_joint_position_controller
+          r_arm_pitch_joint_position_controller r_arm_roll_joint_position_controller
+          r_elbow_pitch_joint_position_controller r_forearm_roll_joint_position_controller
+          r_forearm_link_joint_position_controller r_hand_pitch_joint_position_controller
+          r_hand_roll_joint_position_controller
+          l_arm_pitch_joint_position_controller l_arm_roll_joint_position_controller
+          l_elbow_pitch_joint_position_controller l_forearm_roll_joint_position_controller
+          l_forearm_link_joint_position_controller l_hand_pitch_joint_position_controller
+          l_hand_roll_joint_position_controller
+          r_lower_thumb_joint_position_controller r_middle_thumb_joint_position_controller
+          r_upper_thumb_joint_position_controller r_middle_finger1_joint_position_controller
+          r_upper_finger1_joint_position_controller r_middle_finger2_joint_position_controller
+          r_upper_finger2_joint_position_controller r_middle_finger3_joint_position_controller
+          r_upper_finger3_joint_position_controller r_middle_finger4_joint_position_controller
+          r_upper_finger4_joint_position_controller
+          l_lower_thumb_joint_position_controller l_middle_thumb_joint_position_controller
+          l_upper_thumb_joint_position_controller l_middle_finger1_joint_position_controller
+          l_upper_finger1_joint_position_controller l_middle_finger2_joint_position_controller
+          l_upper_finger2_joint_position_controller l_middle_finger3_joint_position_controller
+          l_upper_finger3_joint_position_controller l_middle_finger4_joint_position_controller
+          l_upper_finger4_joint_position_controller"/>
+
+  <!-- TF from joint states -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"
+    respawn="false" output="screen">
+    <remap from="/joint_states" to="/surenaV/joint_states"/>
+  </node>
+
+  <!-- Existing bridge: /joint_angles_gazebo -> per-joint position commands -->
+  <node name="gazebo_bridge_node" pkg="surenaV_gazebo" type="gazebo_bridge_node"
+    output="screen">
+    <param name="controller_suffix" value="position"/>
+  </node>
+</launch>

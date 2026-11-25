@@ -1,0 +1,28 @@
+<launch>
+  <!-- ==================================================================== -->
+  <!-- Arm-movement demo, Gazebo Classic, VELOCITY control                  -->
+  <!--                                                                      -->
+  <!-- Starts the full velocity session (Gazebo + 51 velocity controllers)  -->
+  <!-- and runs the demo node, which streams slew-limited velocity commands -->
+  <!-- to the right/left arm velocity controllers.                          -->
+  <!--                                                                      -->
+  <!--   roslaunch surenaV_control arm_demo_velocity.launch                 -->
+  <!--   ... _arm:=both  _speed:=0.5                                        -->
+  <!-- ==================================================================== -->
+
+  <arg name="arm" default="r"/>
+  <arg name="speed" default="1.0"/>
+  <arg name="gz_gui" default="true"/>
+
+  <include file="$(find surenaV_control)/launch/gazebo_velocity.launch">
+    <arg name="gui" value="$(arg gz_gui)"/>
+  </include>
+
+  <node name="arm_movement_demo" pkg="surenaV_control"
+        type="arm_movement_demo.py" output="screen">
+    <param name="mode" value="velocity"/>
+    <param name="arm" value="$(arg arm)"/>
+    <param name="speed" value="$(arg speed)"/>
+    <param name="rate" value="50"/>
+  </node>
+</launch>

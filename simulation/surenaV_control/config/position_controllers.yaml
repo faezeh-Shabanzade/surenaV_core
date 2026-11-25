@@ -1,0 +1,310 @@
+# Auto-generated from surenaV_description/urdf/surenaV.urdf (full body + hands,
+# 51 revolute joints). Regenerate/check with scripts/validate_urdf_and_configs.py.
+#
+# Uses the DIRECT command interfaces (no PID loop here): the transmission's
+# hardware_interface/PositionJointInterface maps the command straight to the
+# simulated (or physical) actuator's internal position loop.
+
+surenaV:
+  joint_state_controller:
+    type: joint_state_controller/JointStateController
+    publish_rate: 100
+
+  # HEAD (3 joints)
+  head_yaw_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: head_yaw_joint
+  head_pitch_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: head_pitch_joint
+  head_roll_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: head_roll_joint
+
+  # R_LEG (6 joints)
+  r_hip_yaw_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: r_hip_yaw_joint
+  r_hip_roll_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: r_hip_roll_joint
+  r_hip_pitch_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: r_hip_pitch_joint
+  r_knee_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: r_knee_joint
+  r_ankle_pitch_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: r_ankle_pitch_joint
+  r_ankle_roll_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: r_ankle_roll_joint
+
+  # L_LEG (6 joints)
+  l_hip_yaw_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: l_hip_yaw_joint
+  l_hip_roll_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: l_hip_roll_joint
+  l_hip_pitch_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: l_hip_pitch_joint
+  l_knee_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: l_knee_joint
+  l_ankle_pitch_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: l_ankle_pitch_joint
+  l_ankle_roll_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: l_ankle_roll_joint
+
+  # R_ARM (7 joints)
+  r_arm_pitch_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: r_arm_pitch_joint
+  r_arm_roll_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: r_arm_roll_joint
+  r_elbow_pitch_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: r_elbow_pitch_joint
+  r_forearm_roll_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: r_forearm_roll_joint
+  r_forearm_link_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: r_forearm_link_joint
+  r_hand_pitch_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: r_hand_pitch_joint
+  r_hand_roll_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: r_hand_roll_joint
+
+  # L_ARM (7 joints)
+  l_arm_pitch_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: l_arm_pitch_joint
+  l_arm_roll_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: l_arm_roll_joint
+  l_elbow_pitch_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: l_elbow_pitch_joint
+  l_forearm_roll_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: l_forearm_roll_joint
+  l_forearm_link_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: l_forearm_link_joint
+  l_hand_pitch_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: l_hand_pitch_joint
+  l_hand_roll_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: l_hand_roll_joint
+
+  # R_HAND (11 joints)
+  r_middle_finger1_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: r_middle_finger1_joint
+  # --- INACTIVE: effort+PID alternative for r_middle_finger1_joint (uncomment to enable; also switch
+  #     the URDF transmission hardwareInterface of r_middle_finger1_joint back to EffortJointInterface).
+  # r_middle_finger1_joint_position_controller:
+  #   type: effort_controllers/JointPositionController
+  #   joint: r_middle_finger1_joint
+  #   pid: {p: 100.0, i: 0.1, d: 5.0}
+  r_upper_finger1_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: r_upper_finger1_joint
+  # --- INACTIVE: effort+PID alternative for r_upper_finger1_joint (uncomment to enable; also switch
+  #     the URDF transmission hardwareInterface of r_upper_finger1_joint back to EffortJointInterface).
+  # r_upper_finger1_joint_position_controller:
+  #   type: effort_controllers/JointPositionController
+  #   joint: r_upper_finger1_joint
+  #   pid: {p: 100.0, i: 0.1, d: 5.0}
+  r_middle_finger2_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: r_middle_finger2_joint
+  # --- INACTIVE: effort+PID alternative for r_middle_finger2_joint (uncomment to enable; also switch
+  #     the URDF transmission hardwareInterface of r_middle_finger2_joint back to EffortJointInterface).
+  # r_middle_finger2_joint_position_controller:
+  #   type: effort_controllers/JointPositionController
+  #   joint: r_middle_finger2_joint
+  #   pid: {p: 100.0, i: 0.1, d: 5.0}
+  r_upper_finger2_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: r_upper_finger2_joint
+  # --- INACTIVE: effort+PID alternative for r_upper_finger2_joint (uncomment to enable; also switch
+  #     the URDF transmission hardwareInterface of r_upper_finger2_joint back to EffortJointInterface).
+  # r_upper_finger2_joint_position_controller:
+  #   type: effort_controllers/JointPositionController
+  #   joint: r_upper_finger2_joint
+  #   pid: {p: 100.0, i: 0.1, d: 5.0}
+  r_middle_finger3_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: r_middle_finger3_joint
+  # --- INACTIVE: effort+PID alternative for r_middle_finger3_joint (uncomment to enable; also switch
+  #     the URDF transmission hardwareInterface of r_middle_finger3_joint back to EffortJointInterface).
+  # r_middle_finger3_joint_position_controller:
+  #   type: effort_controllers/JointPositionController
+  #   joint: r_middle_finger3_joint
+  #   pid: {p: 100.0, i: 0.1, d: 5.0}
+  r_upper_finger3_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: r_upper_finger3_joint
+  # --- INACTIVE: effort+PID alternative for r_upper_finger3_joint (uncomment to enable; also switch
+  #     the URDF transmission hardwareInterface of r_upper_finger3_joint back to EffortJointInterface).
+  # r_upper_finger3_joint_position_controller:
+  #   type: effort_controllers/JointPositionController
+  #   joint: r_upper_finger3_joint
+  #   pid: {p: 100.0, i: 0.1, d: 5.0}
+  r_middle_finger4_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: r_middle_finger4_joint
+  # --- INACTIVE: effort+PID alternative for r_middle_finger4_joint (uncomment to enable; also switch
+  #     the URDF transmission hardwareInterface of r_middle_finger4_joint back to EffortJointInterface).
+  # r_middle_finger4_joint_position_controller:
+  #   type: effort_controllers/JointPositionController
+  #   joint: r_middle_finger4_joint
+  #   pid: {p: 100.0, i: 0.1, d: 5.0}
+  r_upper_finger4_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: r_upper_finger4_joint
+  # --- INACTIVE: effort+PID alternative for r_upper_finger4_joint (uncomment to enable; also switch
+  #     the URDF transmission hardwareInterface of r_upper_finger4_joint back to EffortJointInterface).
+  # r_upper_finger4_joint_position_controller:
+  #   type: effort_controllers/JointPositionController
+  #   joint: r_upper_finger4_joint
+  #   pid: {p: 100.0, i: 0.1, d: 5.0}
+  r_lower_thumb_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: r_lower_thumb_joint
+  # --- INACTIVE: effort+PID alternative for r_lower_thumb_joint (uncomment to enable; also switch
+  #     the URDF transmission hardwareInterface of r_lower_thumb_joint back to EffortJointInterface).
+  # r_lower_thumb_joint_position_controller:
+  #   type: effort_controllers/JointPositionController
+  #   joint: r_lower_thumb_joint
+  #   pid: {p: 100.0, i: 0.1, d: 5.0}
+  r_middle_thumb_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: r_middle_thumb_joint
+  # --- INACTIVE: effort+PID alternative for r_middle_thumb_joint (uncomment to enable; also switch
+  #     the URDF transmission hardwareInterface of r_middle_thumb_joint back to EffortJointInterface).
+  # r_middle_thumb_joint_position_controller:
+  #   type: effort_controllers/JointPositionController
+  #   joint: r_middle_thumb_joint
+  #   pid: {p: 100.0, i: 0.1, d: 5.0}
+  r_upper_thumb_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: r_upper_thumb_joint
+  # --- INACTIVE: effort+PID alternative for r_upper_thumb_joint (uncomment to enable; also switch
+  #     the URDF transmission hardwareInterface of r_upper_thumb_joint back to EffortJointInterface).
+  # r_upper_thumb_joint_position_controller:
+  #   type: effort_controllers/JointPositionController
+  #   joint: r_upper_thumb_joint
+  #   pid: {p: 100.0, i: 0.1, d: 5.0}
+
+  # L_HAND (11 joints)
+  l_middle_finger1_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: l_middle_finger1_joint
+  # --- INACTIVE: effort+PID alternative for l_middle_finger1_joint (uncomment to enable; also switch
+  #     the URDF transmission hardwareInterface of l_middle_finger1_joint back to EffortJointInterface).
+  # l_middle_finger1_joint_position_controller:
+  #   type: effort_controllers/JointPositionController
+  #   joint: l_middle_finger1_joint
+  #   pid: {p: 100.0, i: 0.1, d: 5.0}
+  l_upper_finger1_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: l_upper_finger1_joint
+  # --- INACTIVE: effort+PID alternative for l_upper_finger1_joint (uncomment to enable; also switch
+  #     the URDF transmission hardwareInterface of l_upper_finger1_joint back to EffortJointInterface).
+  # l_upper_finger1_joint_position_controller:
+  #   type: effort_controllers/JointPositionController
+  #   joint: l_upper_finger1_joint
+  #   pid: {p: 100.0, i: 0.1, d: 5.0}
+  l_middle_finger2_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: l_middle_finger2_joint
+  # --- INACTIVE: effort+PID alternative for l_middle_finger2_joint (uncomment to enable; also switch
+  #     the URDF transmission hardwareInterface of l_middle_finger2_joint back to EffortJointInterface).
+  # l_middle_finger2_joint_position_controller:
+  #   type: effort_controllers/JointPositionController
+  #   joint: l_middle_finger2_joint
+  #   pid: {p: 100.0, i: 0.1, d: 5.0}
+  l_upper_finger2_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: l_upper_finger2_joint
+  # --- INACTIVE: effort+PID alternative for l_upper_finger2_joint (uncomment to enable; also switch
+  #     the URDF transmission hardwareInterface of l_upper_finger2_joint back to EffortJointInterface).
+  # l_upper_finger2_joint_position_controller:
+  #   type: effort_controllers/JointPositionController
+  #   joint: l_upper_finger2_joint
+  #   pid: {p: 100.0, i: 0.1, d: 5.0}
+  l_middle_finger3_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: l_middle_finger3_joint
+  # --- INACTIVE: effort+PID alternative for l_middle_finger3_joint (uncomment to enable; also switch
+  #     the URDF transmission hardwareInterface of l_middle_finger3_joint back to EffortJointInterface).
+  # l_middle_finger3_joint_position_controller:
+  #   type: effort_controllers/JointPositionController
+  #   joint: l_middle_finger3_joint
+  #   pid: {p: 100.0, i: 0.1, d: 5.0}
+  l_upper_finger3_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: l_upper_finger3_joint
+  # --- INACTIVE: effort+PID alternative for l_upper_finger3_joint (uncomment to enable; also switch
+  #     the URDF transmission hardwareInterface of l_upper_finger3_joint back to EffortJointInterface).
+  # l_upper_finger3_joint_position_controller:
+  #   type: effort_controllers/JointPositionController
+  #   joint: l_upper_finger3_joint
+  #   pid: {p: 100.0, i: 0.1, d: 5.0}
+  l_middle_finger4_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: l_middle_finger4_joint
+  # --- INACTIVE: effort+PID alternative for l_middle_finger4_joint (uncomment to enable; also switch
+  #     the URDF transmission hardwareInterface of l_middle_finger4_joint back to EffortJointInterface).
+  # l_middle_finger4_joint_position_controller:
+  #   type: effort_controllers/JointPositionController
+  #   joint: l_middle_finger4_joint
+  #   pid: {p: 100.0, i: 0.1, d: 5.0}
+  l_upper_finger4_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: l_upper_finger4_joint
+  # --- INACTIVE: effort+PID alternative for l_upper_finger4_joint (uncomment to enable; also switch
+  #     the URDF transmission hardwareInterface of l_upper_finger4_joint back to EffortJointInterface).
+  # l_upper_finger4_joint_position_controller:
+  #   type: effort_controllers/JointPositionController
+  #   joint: l_upper_finger4_joint
+  #   pid: {p: 100.0, i: 0.1, d: 5.0}
+  l_lower_thumb_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: l_lower_thumb_joint
+  # --- INACTIVE: effort+PID alternative for l_lower_thumb_joint (uncomment to enable; also switch
+  #     the URDF transmission hardwareInterface of l_lower_thumb_joint back to EffortJointInterface).
+  # l_lower_thumb_joint_position_controller:
+  #   type: effort_controllers/JointPositionController
+  #   joint: l_lower_thumb_joint
+  #   pid: {p: 100.0, i: 0.1, d: 5.0}
+  l_middle_thumb_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: l_middle_thumb_joint
+  # --- INACTIVE: effort+PID alternative for l_middle_thumb_joint (uncomment to enable; also switch
+  #     the URDF transmission hardwareInterface of l_middle_thumb_joint back to EffortJointInterface).
+  # l_middle_thumb_joint_position_controller:
+  #   type: effort_controllers/JointPositionController
+  #   joint: l_middle_thumb_joint
+  #   pid: {p: 100.0, i: 0.1, d: 5.0}
+  l_upper_thumb_joint_position_controller:
+    type: position_controllers/JointPositionController
+    joint: l_upper_thumb_joint
+  # --- INACTIVE: effort+PID alternative for l_upper_thumb_joint (uncomment to enable; also switch
+  #     the URDF transmission hardwareInterface of l_upper_thumb_joint back to EffortJointInterface).
+  # l_upper_thumb_joint_position_controller:
+  #   type: effort_controllers/JointPositionController
+  #   joint: l_upper_thumb_joint
+  #   pid: {p: 100.0, i: 0.1, d: 5.0}

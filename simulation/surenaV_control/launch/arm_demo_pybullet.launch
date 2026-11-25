@@ -1,0 +1,30 @@
+<launch>
+  <!-- ==================================================================== -->
+  <!-- Arm-movement demo, PyBullet via the ROS bridge                       -->
+  <!--                                                                      -->
+  <!-- Starts the PyBullet simulation with the ros_control-compatible       -->
+  <!-- bridge (same controller topics as the Gazebo session) and runs the   -->
+  <!-- demo node against it. Select the control mode with mode:=            -->
+  <!-- (the bridge and the demo node must use the same mode).               -->
+  <!--                                                                      -->
+  <!--   roslaunch surenaV_control arm_demo_pybullet.launch                 -->
+  <!--   roslaunch surenaV_control arm_demo_pybullet.launch mode:=velocity  -->
+  <!-- ==================================================================== -->
+
+  <arg name="mode" default="position"/>
+  <arg name="arm" default="r"/>
+  <arg name="speed" default="1.0"/>
+  <arg name="pb_gui" default="true"/>
+
+  <include file="$(find surenaV_control)/launch/pybullet_$(arg mode).launch">
+    <arg name="gui" value="$(arg pb_gui)"/>
+  </include>
+
+  <node name="arm_movement_demo" pkg="surenaV_control"
+        type="arm_movement_demo.py" output="screen">
+    <param name="mode" value="$(arg mode)"/>
+    <param name="arm" value="$(arg arm)"/>
+    <param name="speed" value="$(arg speed)"/>
+    <param name="rate" value="50"/>
+  </node>
+</launch>

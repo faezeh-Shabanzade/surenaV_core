@@ -1,0 +1,23 @@
+<launch>
+  <!-- Surena V in PyBullet, POSITION control, exposed on the same controller
+       topics as the Gazebo Classic session so high-level nodes work against
+       either simulator. -->
+  <arg name="gui" default="true"/>
+  <arg name="fixed_base" default="false"/>
+  <arg name="rate" default="100"/>
+
+  <node name="pybullet_control_node" pkg="surenaV_control"
+        type="pybullet_ros_node.py" output="screen">
+    <param name="mode" value="position"/>
+    <param name="gui" value="$(arg gui)"/>
+    <param name="fixed_base" value="$(arg fixed_base)"/>
+    <param name="rate" value="$(arg rate)"/>
+    <param name="watchdog" value="0.5"/>
+  </node>
+
+  <!-- TF from the PyBullet joint states -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher"
+        type="robot_state_publisher" output="screen">
+    <remap from="/joint_states" to="/surenaV/joint_states"/>
+  </node>
+</launch>

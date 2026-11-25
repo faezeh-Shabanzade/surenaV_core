@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   gait_planner
   hand_planner
+  surena_msgs
 )
 
 find_package(yaml-cpp REQUIRED)
@@ -71,7 +72,7 @@ generate_messages(
 
 catkin_package(
  INCLUDE_DIRS include
- CATKIN_DEPENDS roscpp rospy std_msgs message_runtime
+ CATKIN_DEPENDS roscpp rospy std_msgs message_runtime surena_msgs
  DEPENDS Eigen3
 )
 

@@ -1,0 +1,178 @@
+# Auto-generated from surenaV_description/urdf/surenaV.urdf (full body + hands,
+# 51 revolute joints). Regenerate/check with scripts/validate_urdf_and_configs.py.
+#
+# Uses the DIRECT command interfaces (no PID loop here): the transmission's
+# hardware_interface/PositionJointInterface maps the command straight to the
+# simulated (or physical) actuator's internal position loop.
+
+surenaV:
+  joint_state_controller:
+    type: joint_state_controller/JointStateController
+    publish_rate: 100
+
+  # HEAD (3 joints)
+  head_yaw_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: head_yaw_joint
+  head_pitch_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: head_pitch_joint
+  head_roll_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: head_roll_joint
+
+  # R_LEG (6 joints)
+  r_hip_yaw_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: r_hip_yaw_joint
+  r_hip_roll_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: r_hip_roll_joint
+  r_hip_pitch_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: r_hip_pitch_joint
+  r_knee_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: r_knee_joint
+  r_ankle_pitch_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: r_ankle_pitch_joint
+  r_ankle_roll_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: r_ankle_roll_joint
+
+  # L_LEG (6 joints)
+  l_hip_yaw_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: l_hip_yaw_joint
+  l_hip_roll_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: l_hip_roll_joint
+  l_hip_pitch_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: l_hip_pitch_joint
+  l_knee_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: l_knee_joint
+  l_ankle_pitch_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: l_ankle_pitch_joint
+  l_ankle_roll_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: l_ankle_roll_joint
+
+  # R_ARM (7 joints)
+  r_arm_pitch_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: r_arm_pitch_joint
+  r_arm_roll_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: r_arm_roll_joint
+  r_elbow_pitch_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: r_elbow_pitch_joint
+  r_forearm_roll_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: r_forearm_roll_joint
+  r_forearm_link_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: r_forearm_link_joint
+  r_hand_pitch_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: r_hand_pitch_joint
+  r_hand_roll_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: r_hand_roll_joint
+
+  # L_ARM (7 joints)
+  l_arm_pitch_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: l_arm_pitch_joint
+  l_arm_roll_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: l_arm_roll_joint
+  l_elbow_pitch_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: l_elbow_pitch_joint
+  l_forearm_roll_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: l_forearm_roll_joint
+  l_forearm_link_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: l_forearm_link_joint
+  l_hand_pitch_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: l_hand_pitch_joint
+  l_hand_roll_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: l_hand_roll_joint
+
+  # R_HAND (11 joints)
+  r_middle_finger1_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: r_middle_finger1_joint
+  r_upper_finger1_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: r_upper_finger1_joint
+  r_middle_finger2_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: r_middle_finger2_joint
+  r_upper_finger2_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: r_upper_finger2_joint
+  r_middle_finger3_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: r_middle_finger3_joint
+  r_upper_finger3_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: r_upper_finger3_joint
+  r_middle_finger4_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: r_middle_finger4_joint
+  r_upper_finger4_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: r_upper_finger4_joint
+  r_lower_thumb_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: r_lower_thumb_joint
+  r_middle_thumb_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: r_middle_thumb_joint
+  r_upper_thumb_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: r_upper_thumb_joint
+
+  # L_HAND (11 joints)
+  l_middle_finger1_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: l_middle_finger1_joint
+  l_upper_finger1_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: l_upper_finger1_joint
+  l_middle_finger2_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: l_middle_finger2_joint
+  l_upper_finger2_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: l_upper_finger2_joint
+  l_middle_finger3_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: l_middle_finger3_joint
+  l_upper_finger3_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: l_upper_finger3_joint
+  l_middle_finger4_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: l_middle_finger4_joint
+  l_upper_finger4_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: l_upper_finger4_joint
+  l_lower_thumb_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: l_lower_thumb_joint
+  l_middle_thumb_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: l_middle_thumb_joint
+  l_upper_thumb_joint_velocity_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: l_upper_thumb_joint

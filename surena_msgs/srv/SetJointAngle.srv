@@ -1,0 +1,7 @@
+# Request
+string joint_name      # e.g. "r_middle_finger1_joint", "r_arm_pitch_joint"
+float64 angle_deg      # target angle in degrees
+---
+# Response
+bool success
+string message

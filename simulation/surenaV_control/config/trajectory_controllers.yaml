@@ -1,0 +1,135 @@
+# Auto-generated from surenaV_description/urdf/surenaV.urdf (full body + hands,
+# 51 revolute joints). Regenerate/check with scripts/validate_urdf_and_configs.py.
+#
+# Uses the DIRECT command interfaces (no PID loop here): the transmission's
+# hardware_interface/PositionJointInterface maps the command straight to the
+# simulated (or physical) actuator's internal position loop.
+
+#
+# Group-wise coordinated motion. joint_trajectory_controller in ROS 1 Noetic is
+# compiled against the PositionJointInterface, so these load only in the
+# position-control session (surenaV_position.urdf). They are loaded STOPPED by
+# the launch files; activate with controller_manager/switch_controller (see
+# scripts/switch_control_mode.py).
+#
+surenaV:
+  head_trajectory_controller:
+    type: joint_trajectory_controller/JointTrajectoryController
+    joints:
+      - head_yaw_joint
+      - head_pitch_joint
+      - head_roll_joint
+    gains:
+    constraints:
+      goal_time: 0.5
+      stopped_velocity_tolerance: 0.05
+    state_publish_rate: 100
+    action_monitor_rate: 20
+
+  r_leg_trajectory_controller:
+    type: joint_trajectory_controller/JointTrajectoryController
+    joints:
+      - r_hip_yaw_joint
+      - r_hip_roll_joint
+      - r_hip_pitch_joint
+      - r_knee_joint
+      - r_ankle_pitch_joint
+      - r_ankle_roll_joint
+    gains:
+    constraints:
+      goal_time: 0.5
+      stopped_velocity_tolerance: 0.05
+    state_publish_rate: 100
+    action_monitor_rate: 20
+
+  l_leg_trajectory_controller:
+    type: joint_trajectory_controller/JointTrajectoryController
+    joints:
+      - l_hip_yaw_joint
+      - l_hip_roll_joint
+      - l_hip_pitch_joint
+      - l_knee_joint
+      - l_ankle_pitch_joint
+      - l_ankle_roll_joint
+    gains:
+    constraints:
+      goal_time: 0.5
+      stopped_velocity_tolerance: 0.05
+    state_publish_rate: 100
+    action_monitor_rate: 20
+
+  r_arm_trajectory_controller:
+    type: joint_trajectory_controller/JointTrajectoryController
+    joints:
+      - r_arm_pitch_joint
+      - r_arm_roll_joint
+      - r_elbow_pitch_joint
+      - r_forearm_roll_joint
+      - r_forearm_link_joint
+      - r_hand_pitch_joint
+      - r_hand_roll_joint
+    gains:
+    constraints:
+      goal_time: 0.5
+      stopped_velocity_tolerance: 0.05
+    state_publish_rate: 100
+    action_monitor_rate: 20
+
+  l_arm_trajectory_controller:
+    type: joint_trajectory_controller/JointTrajectoryController
+    joints:
+      - l_arm_pitch_joint
+      - l_arm_roll_joint
+      - l_elbow_pitch_joint
+      - l_forearm_roll_joint
+      - l_forearm_link_joint
+      - l_hand_pitch_joint
+      - l_hand_roll_joint
+    gains:
+    constraints:
+      goal_time: 0.5
+      stopped_velocity_tolerance: 0.05
+    state_publish_rate: 100
+    action_monitor_rate: 20
+
+  r_hand_trajectory_controller:
+    type: joint_trajectory_controller/JointTrajectoryController
+    joints:
+      - r_middle_finger1_joint
+      - r_upper_finger1_joint
+      - r_middle_finger2_joint
+      - r_upper_finger2_joint
+      - r_middle_finger3_joint
+      - r_upper_finger3_joint
+      - r_middle_finger4_joint
+      - r_upper_finger4_joint
+      - r_lower_thumb_joint
+      - r_middle_thumb_joint
+      - r_upper_thumb_joint
+    gains:
+    constraints:
+      goal_time: 0.5
+      stopped_velocity_tolerance: 0.05
+    state_publish_rate: 100
+    action_monitor_rate: 20
+
+  l_hand_trajectory_controller:
+    type: joint_trajectory_controller/JointTrajectoryController
+    joints:
+      - l_middle_finger1_joint
+      - l_upper_finger1_joint
+      - l_middle_finger2_joint
+      - l_upper_finger2_joint
+      - l_middle_finger3_joint
+      - l_upper_finger3_joint
+      - l_middle_finger4_joint
+      - l_upper_finger4_joint
+      - l_lower_thumb_joint
+      - l_middle_thumb_joint
+      - l_upper_thumb_joint
+    gains:
+    constraints:
+      goal_time: 0.5
+      stopped_velocity_tolerance: 0.05
+    state_publish_rate: 100
+    action_monitor_rate: 20

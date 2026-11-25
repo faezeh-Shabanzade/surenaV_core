@@ -1,9 +1,14 @@
 #include "RobotManager.h"
 
+#include <limits>
+#include <algorithm>
+#include <cmath>
+#include <vector>
+
 // --- CONSTRUCTOR ---
 RobotManager::RobotManager(ros::NodeHandle *n) : 
     nh_(n),
-    simulation(false)
+    simulation(true)
 {
     hand_manager_ = std::make_unique<HandManager>(nh_);
     gait_manager_ = std::make_unique<GaitManager>(nh_);
@@ -14,8 +19,13 @@ RobotManager::RobotManager(ros::NodeHandle *n) :
     execute_scenario_service_ = nh_->advertiseService("execute_scenario_srv", &RobotManager::execute_scenario_callback, this);
     combined_motor_pub_       = nh_->advertise<std_msgs::Int32MultiArray>("jointdata/qc", 100);
     combined_gazebo_pub_      = nh_->advertise<std_msgs::Float64MultiArray>("/joint_angles_gazebo", 100);
+    finger_gazebo_pub_        = nh_->advertise<std_msgs::Float64MultiArray>("/finger_angles_gazebo", 100);
     publish_trigger_sub_      = nh_->subscribe("robot_manager/publish_trigger", 1, &RobotManager::publishTriggerCallback, this);
     joint_command_service_    = nh_->advertiseService("joint_command", &RobotManager::jointCommandCallback, this);
+    set_joint_angle_service_  = nh_->advertiseService("set_joint_angle", &RobotManager::setJointAngleCallback, this);
+    hand_joints_sensor_read_client_ = nh_->serviceClient<surena_msgs::JointSensorRead>("hjoints_sens_read_srv");
+    gait_joints_sensor_read_client_ = nh_->serviceClient<surena_msgs::JointSensorRead>("gjoints_sens_read_srv");
+    joints_sensor_read_service_ = nh_->advertiseService("joints_sens_read_srv", &RobotManager::jointsSensorReadCallback, this);
 }
 
 // --- YAML FILE LOADER ---
@@ -254,6 +264,51 @@ bool RobotManager::execute_step(const YAML::Node& step) {
         ROS_ERROR("Scenario step contains unknown service: %s", service_name.c_str());
         return false;
     }
+}
+
+bool RobotManager::readJointSensor(int32_t id, double &angle)
+{
+    surena_msgs::JointSensorRead srv;
+    srv.request.id = id;
+
+    // Canonical whole-body ids: 0-11 lower body (gait_planner),
+    // 12-28 upper body (hand_planner). Keep this boundary in sync with
+    // kLowerBodyJointNames/kUpperBodyJointNames in the two planners.
+    constexpr int32_t kNumJoints = 29;
+    constexpr int32_t kFirstUpperBodyId = 12;
+
+    if (id < 0 || id >= kNumJoints) {
+        ROS_WARN("joints_sens_read_srv: id %d is out of range (expected 0-%d).",
+                 id, kNumJoints - 1);
+        return false;
+    }
+
+    const bool is_upper_body = (id >= kFirstUpperBodyId);
+    ros::ServiceClient &client = is_upper_body ? hand_joints_sensor_read_client_
+                                               : gait_joints_sensor_read_client_;
+    const char *target = is_upper_body ? "hjoints_sens_read_srv" : "gjoints_sens_read_srv";
+
+    if (!client.exists()) {
+        ROS_WARN("joints_sens_read_srv: %s is not available.", target);
+        return false;
+    }
+
+    // The planner returns false for an id it does not own or before its first
+    // /surenaV/joint_states message, which surfaces here as a failed call.
+    if (!client.call(srv)) {
+        ROS_WARN("joints_sens_read_srv: forwarding id %d to %s failed.", id, target);
+        return false;
+    }
+
+    angle = srv.response.angle;
+    return true;
+}
+
+bool RobotManager::jointsSensorReadCallback(surena_msgs::JointSensorRead::Request &req,
+                                            surena_msgs::JointSensorRead::Response &res)
+{
+    res.angle = std::numeric_limits<double>::quiet_NaN();
+    return readJointSensor(req.id, res.angle);
 }
 
 int32_t RobotManager::map_range(double val, double min_val, double max_val, double min_cmd, double max_cmd) {
@@ -516,12 +571,6 @@ void RobotManager::publishCombinedMotorCommands() {
             combined_gazebo_command_msg_.data.push_back(hand_gazebo_commands[i]);
 
         // -------------------------
-        // Finger commands
-        // -------------------------
-        for (int i = 0; i < 8; ++i) {
-            combined_gazebo_command_msg_.data.push_back(finger_motor_commands[i]);
-        }
-        // -------------------------
         // Override shoulders if gait provides values
         // -------------------------
         if (gait_gazebo_commands[12] != 0.0)
@@ -532,6 +581,15 @@ void RobotManager::publishCombinedMotorCommands() {
 
         combined_gazebo_pub_.publish(combined_gazebo_command_msg_);
 
+        // -------------------------
+        // Finger joints for Gazebo: 22 values (11 per hand), each entry already
+        // contains the actuated joint angles AND the mimic-coupled distal angles
+        // computed by FingerControl::applyServoPositions().
+        // -------------------------
+        const std::vector<double>& finger_gazebo_commands = hand_manager_->getFingerGazeboCommands();
+        std_msgs::Float64MultiArray finger_msg;
+        finger_msg.data = finger_gazebo_commands;
+        finger_gazebo_pub_.publish(finger_msg);
         // for (size_t i = 0; i < combined_gazebo_command_msg_.data.size(); ++i) {
         //     std::cout << combined_gazebo_command_msg_.data[i];
         //     if (i < combined_gazebo_command_msg_.data.size() - 1) std::cout << ", ";
@@ -539,6 +597,128 @@ void RobotManager::publishCombinedMotorCommands() {
         // std::cout << std::endl;
     }
 
+}
+
+
+// --- Single-joint direct angle service (simulation only) ---
+// Body joints (29) and the 12 actuated finger joints are accepted. Mimic finger
+// joints (upper_finger1..4, upper_thumb) are driven by their parent joint and are
+// rejected here. Angle is given in degrees; finger angles are also mirrored into
+// FingerControl's servo state so subsequent animations start from the new pose.
+void RobotManager::publishJointCommand(const std::string& joint_name, double angle_rad) {
+    std::lock_guard<std::mutex> lock(joint_pub_mutex_);
+    auto it = joint_pub_cache_.find(joint_name);
+    if (it == joint_pub_cache_.end()) {
+        ros::Publisher pub = nh_->advertise<std_msgs::Float64>(
+            "/surenaV/" + joint_name + "_position_controller/command", 10);
+        it = joint_pub_cache_.emplace(joint_name, pub).first;
+    }
+    std_msgs::Float64 msg;
+    msg.data = angle_rad;
+    it->second.publish(msg);
+}
+
+bool RobotManager::setJointAngleCallback(surena_msgs::SetJointAngle::Request &req,
+                                         surena_msgs::SetJointAngle::Response &res) {
+    const std::string &name = req.joint_name;
+
+    if (!simulation) {
+        res.success = false;
+        res.message = "set_joint_angle is only supported in simulation mode "
+                      "(hardware fingers use the servo protocol via finger_control_srv).";
+        return true;
+    }
+
+    double angle_rad = req.angle_deg * M_PI / 180.0;
+
+    // ---- Actuated finger joints (6 per hand) ----
+    static const std::vector<std::string> kFingerActuated = {
+        "middle_finger1", "middle_finger2", "middle_finger3", "middle_finger4",
+        "lower_thumb", "middle_thumb"
+    };
+    for (int side = 0; side < 2; ++side) {
+        const std::string prefix = (side == 0) ? "r_" : "l_";
+        for (size_t c = 0; c < kFingerActuated.size(); ++c) {
+            if (name != prefix + kFingerActuated[c] + "_joint")
+                continue;
+
+            // 1) command the joint position controller in Gazebo.
+            //    The kGazeboSignR/L tables (FingerControl.h) carry the same
+            //    per-channel sign used by FingerControl::applyServoPositions.
+            const auto& gazebo_sign = (side == 0) ? kGazeboSignR : kGazeboSignL;
+            publishJointCommand(name, gazebo_sign[c] * angle_rad);
+
+            // 2) mirror the angle into FingerControl's servo state so that
+            //    follow-up animations / scenario commands start from this pose.
+            //    Servo convention: 0 = closed (full flex, kMaxFlexRad), 255 = open.
+            double flex = std::max(0.0, std::min(kMaxFlexRad, angle_rad));
+            int servo = static_cast<int>(std::round(kServoOpen - flex / kMaxFlexRad * kServoOpen));
+
+            FingerControl *fc = hand_manager_->getFingerControl();
+            HandSelection hand = (side == 0) ? HandSelection::RIGHT_HAND : HandSelection::LEFT_HAND;
+            std::vector<uint8_t> servos = fc->getLastServoPositions(hand);
+            if (servos.size() == 6) {
+                servos[c] = static_cast<uint8_t>(std::max(0, std::min(255, servo)));
+                uint8_t control_data = (side == 0) ? 6 : 7;  // 6 = right hand, 7 = left hand
+                fc->setDirectControl(servos, control_data, hand);
+            }
+
+            res.success = true;
+            res.message = "Finger joint '" + name + "' commanded to " +
+                          std::to_string(req.angle_deg) + " deg (servo " + std::to_string(servo) + ").";
+            ROS_INFO("%s", res.message.c_str());
+            return true;
+        }
+    }
+
+    // ---- Mimic finger joints: driven by their parent, not directly commandable ----
+    static const std::vector<std::string> kFingerMimic = {
+        "upper_finger1", "upper_finger2", "upper_finger3", "upper_finger4", "upper_thumb"
+    };
+    for (int side = 0; side < 2; ++side) {
+        const std::string prefix = (side == 0) ? "r_" : "l_";
+        for (const auto &m : kFingerMimic) {
+            if (name == prefix + m + "_joint") {
+                res.success = false;
+                res.message = "'" + name + "' is a mimic joint; command its driving joint instead "
+                              "(e.g. '" + prefix + "middle_finger1_joint' or '" + prefix + "middle_thumb_joint').";
+                return true;
+            }
+        }
+    }
+
+    // ---- Body joints (29) ----
+    static const std::vector<std::string> kBodyJoints = {
+        // lower body (ids 0-11)
+        "r_hip_yaw_joint", "r_hip_roll_joint", "r_hip_pitch_joint",
+        "r_knee_joint", "r_ankle_pitch_joint", "r_ankle_roll_joint",
+        "l_hip_yaw_joint", "l_hip_roll_joint", "l_hip_pitch_joint",
+        "l_knee_joint", "l_ankle_pitch_joint", "l_ankle_roll_joint",
+        // right arm (12-15, 23-25)
+        "r_arm_pitch_joint", "r_arm_roll_joint", "r_elbow_pitch_joint",
+        "r_forearm_roll_joint", "r_forearm_link_joint", "r_hand_roll_joint",
+        "r_hand_pitch_joint",
+        // left arm (16-19, 26-28)
+        "l_arm_pitch_joint", "l_arm_roll_joint", "l_elbow_pitch_joint",
+        "l_forearm_roll_joint", "l_forearm_link_joint", "l_hand_roll_joint",
+        "l_hand_pitch_joint",
+        // head (20-22)
+        "head_roll_joint", "head_pitch_joint", "head_yaw_joint"
+    };
+    for (const auto &j : kBodyJoints) {
+        if (name == j) {
+            publishJointCommand(name, angle_rad);
+            res.success = true;
+            res.message = "Joint '" + name + "' commanded to " + std::to_string(req.angle_deg) + " deg.";
+            ROS_INFO("%s", res.message.c_str());
+            return true;
+        }
+    }
+
+    res.success = false;
+    res.message = "Unknown joint '" + name + "'. Valid joints: the 29 body joints and the 12 "
+                  "actuated finger joints (r|l_ + middle_finger1..4 | lower_thumb | middle_thumb + _joint).";
+    return true;
 }
 
 
