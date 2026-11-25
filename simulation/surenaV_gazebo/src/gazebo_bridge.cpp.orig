@@ -1,0 +1,250 @@
+#include "ros/ros.h"
+#include "std_msgs/Float64.h"
+#include "std_msgs/Float64MultiArray.h"
+#include <vector>
+#include <string>
+
+// Global Publishers
+std::vector<ros::Publisher> right_leg_pubs;
+std::vector<ros::Publisher> left_leg_pubs;
+std::vector<ros::Publisher> right_arm_pubs;
+std::vector<ros::Publisher> left_arm_pubs;
+std::vector<ros::Publisher> head_pubs;
+std::vector<ros::Publisher> finger_pubs;
+
+// --- FINGER WIRING -----------------------------------------------------------
+// The real hand has six actuators per side, 0 = fully closed, 255 = fully open.
+// RobotManager already appends them to /joint_angles_gazebo:
+//   29..34 : the six target positions
+//   35     : right-hand control byte (non-zero = apply to the right hand)
+//   36     : left-hand control byte
+// The URDF has eleven joints per hand, so each actuator drives a coupled group.
+// Actuator -> finger comes from the presets in hand_planner/config/
+// finger_scenarios.json ("pointing" extends 0 and curls 1-3, "pinch" closes 0
+// and 4): 0-3 are fingers 1-4, 4 is thumb flexion, 5 is thumb opposition.
+constexpr int kFingerDataOffset = 29;   // first finger element in the message
+constexpr int kFingerDataLength = 8;    // 6 positions + 2 control bytes
+constexpr double kFingerOpenValue = 255.0;
+
+// Travel at a fully closed command, kept clear of the +-1.57 joint limits.
+constexpr double kCurlMiddle  = 1.40;   // proximal segment
+constexpr double kCurlUpper   = 1.20;   // distal segment
+constexpr double kThumbOppose = 1.00;   // thumb rotation across the palm
+
+// Sign that curls each joint toward the palm. Derived from the URDF geometry two
+// independent ways (fingertip-to-palm distance, and world-space axis direction
+// relative to the proximal joint) which agreed on all 20 flexion joints. The
+// signs are not uniform because the export flips the axis on the distal joints
+// of fingers 1 and 2 but not 3 and 4.
+struct FingerJoint {
+    const char *joint;   // controller name stem
+    int actuator;        // 0-5, index into the six target positions
+    double travel;       // radians at a fully closed command
+    int sign;            // direction that curls toward the palm
+};
+
+// Order here defines the layout of /surenaV/finger_joint_angles as well.
+const std::vector<FingerJoint> kFingerJoints = {
+    {"r_lower_thumb",     5, kThumbOppose, -1},  // see note below
+    {"r_middle_thumb",    4, kCurlMiddle,  -1},
+    {"r_upper_thumb",     4, kCurlUpper,   +1},
+    {"r_middle_finger1",  0, kCurlMiddle,  -1},
+    {"r_upper_finger1",   0, kCurlUpper,   +1},
+    {"r_middle_finger2",  1, kCurlMiddle,  -1},
+    {"r_upper_finger2",   1, kCurlUpper,   +1},
+    {"r_middle_finger3",  2, kCurlMiddle,  -1},
+    {"r_upper_finger3",   2, kCurlUpper,   -1},
+    {"r_middle_finger4",  3, kCurlMiddle,  -1},
+    {"r_upper_finger4",   3, kCurlUpper,   -1},
+    {"l_lower_thumb",     5, kThumbOppose, +1},
+    {"l_middle_thumb",    4, kCurlMiddle,  +1},
+    {"l_upper_thumb",     4, kCurlUpper,   +1},
+    {"l_middle_finger1",  0, kCurlMiddle,  +1},
+    {"l_upper_finger1",   0, kCurlUpper,   -1},
+    {"l_middle_finger2",  1, kCurlMiddle,  +1},
+    {"l_upper_finger2",   1, kCurlUpper,   -1},
+    {"l_middle_finger3",  2, kCurlMiddle,  +1},
+    {"l_upper_finger3",   2, kCurlUpper,   +1},
+    {"l_middle_finger4",  3, kCurlMiddle,  +1},
+    {"l_upper_finger4",   3, kCurlUpper,   +1},
+};
+// NOTE: r_lower_thumb is the one sign geometry could not settle - at the zero
+// pose the right thumb is already at its closest to the index finger, so both
+// directions increase that distance by the same amount (0.0925 vs 0.0924 m).
+// It is set to mirror the left hand; flip it if opposition goes the wrong way.
+
+static bool is_right(const FingerJoint &fj) { return fj.joint[0] == 'r'; }
+
+// Map one actuator command (0-255) onto a joint angle in radians.
+static double finger_angle(const FingerJoint &fj, double position)
+{
+    const double closed = (kFingerOpenValue - position) / kFingerOpenValue;
+    return fj.sign * fj.travel * closed;
+}
+
+// callback for whole body
+void GazeboCallback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
+    // The message is 32 elements from RobotManager::jointCommandCallback and 37
+    // from publishCombinedMotorCommands, so every block is bounds-checked.
+    auto have = [&msg](int idx) { return idx < (int)msg->data.size(); };
+
+    // Right Leg
+    for (int i = 0; i < 6; ++i) {
+        if (!have(i)) break;
+        std_msgs::Float64 cmd;
+        cmd.data = msg->data[i];
+        right_leg_pubs[i].publish(cmd);
+    }
+    // Left Leg
+    for (int i = 0; i < 6; ++i) {
+        if (!have(i + 6)) break;
+        std_msgs::Float64 cmd;
+        cmd.data = msg->data[i + 6];
+        left_leg_pubs[i].publish(cmd);
+    }
+    // Right Arm
+    std::vector<int> right_arm_indices = {12, 13, 14, 15, 23, 24, 25};
+    for (size_t i = 0; i < right_arm_pubs.size(); ++i) {
+        if (!have(right_arm_indices[i])) break;
+        std_msgs::Float64 cmd;
+        cmd.data = msg->data[right_arm_indices[i]];
+        right_arm_pubs[i].publish(cmd);
+    }
+    // Left Arm 
+    std::vector<int> left_arm_indices = {16, 17, 18, 19, 26, 27, 28};
+    for (size_t i = 0; i < left_arm_pubs.size(); ++i) {
+        if (!have(left_arm_indices[i])) break;
+        std_msgs::Float64 cmd;
+        cmd.data = msg->data[left_arm_indices[i]];
+        left_arm_pubs[i].publish(cmd);
+    }
+    // Head
+    std::vector<int> head_indices = {20, 21, 22};
+    for (size_t i = 0; i < head_pubs.size(); ++i) {
+        if (!have(head_indices[i])) break;
+        std_msgs::Float64 cmd;
+        cmd.data = msg->data[head_indices[i]];
+        head_pubs[i].publish(cmd);
+    }
+
+    // Fingers. The control byte gates each hand, so the zeroed follow-up
+    // messages FingerControl sends after a command do not re-open the hand.
+    if (!have(kFingerDataOffset + kFingerDataLength - 1))
+        return;
+
+    const double *pos = &msg->data[kFingerDataOffset];
+    const bool right_on = msg->data[kFingerDataOffset + 6] != 0.0;
+    const bool left_on  = msg->data[kFingerDataOffset + 7] != 0.0;
+    if (!right_on && !left_on)
+        return;
+
+    for (size_t i = 0; i < kFingerJoints.size(); ++i) {
+        const FingerJoint &fj = kFingerJoints[i];
+        if (is_right(fj) ? !right_on : !left_on)
+            continue;
+        std_msgs::Float64 cmd;
+        cmd.data = finger_angle(fj, pos[fj.actuator]);
+        finger_pubs[i].publish(cmd);
+    }
+}
+
+// Per-joint finger control, bypassing the six-actuator coupling. Takes the 22
+// angles in radians in the order of kFingerJoints (right hand then left, thumb
+// then fingers 1-4); a shorter array sets only the joints it covers.
+void FingerJointCallback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
+    const size_t n = std::min(msg->data.size(), kFingerJoints.size());
+    if (msg->data.size() > kFingerJoints.size()) {
+        ROS_WARN_THROTTLE(5.0, "finger_joint_angles: got %zu values, expected at most %zu; "
+                               "ignoring the extras.", msg->data.size(), kFingerJoints.size());
+    }
+    for (size_t i = 0; i < n; ++i) {
+        std_msgs::Float64 cmd;
+        cmd.data = msg->data[i];
+        finger_pubs[i].publish(cmd);
+    }
+}
+
+int main(int argc, char **argv) {
+    ros::init(argc, argv, "gazebo_bridge_node");
+    ros::NodeHandle nh;
+
+    // Right Leg Publishers
+    std::vector<std::string> right_leg_topics = {
+        "/surenaV/r_hip_yaw_joint_position_controller/command",
+        "/surenaV/r_hip_roll_joint_position_controller/command",
+        "/surenaV/r_hip_pitch_joint_position_controller/command",
+        "/surenaV/r_knee_joint_position_controller/command",
+        "/surenaV/r_ankle_pitch_joint_position_controller/command",
+        "/surenaV/r_ankle_roll_joint_position_controller/command"
+    };
+    for (const auto& topic : right_leg_topics) {
+        right_leg_pubs.push_back(nh.advertise<std_msgs::Float64>(topic, 10));
+    }
+
+    // Left Leg Publishers
+    std::vector<std::string> left_leg_topics = {
+        "/surenaV/l_hip_yaw_joint_position_controller/command",
+        "/surenaV/l_hip_roll_joint_position_controller/command",
+        "/surenaV/l_hip_pitch_joint_position_controller/command",
+        "/surenaV/l_knee_joint_position_controller/command",
+        "/surenaV/l_ankle_pitch_joint_position_controller/command",
+        "/surenaV/l_ankle_roll_joint_position_controller/command"
+    };
+    for (const auto& topic : left_leg_topics) {
+        left_leg_pubs.push_back(nh.advertise<std_msgs::Float64>(topic, 10));
+    }
+
+    // Right Arm Publishers
+    std::vector<std::string> right_arm_topics = {
+        "/surenaV/r_arm_pitch_joint_position_controller/command",
+        "/surenaV/r_arm_roll_joint_position_controller/command",
+        "/surenaV/r_elbow_pitch_joint_position_controller/command",
+        "/surenaV/r_forearm_roll_joint_position_controller/command",
+        "/surenaV/r_forearm_link_joint_position_controller/command",
+        "/surenaV/r_hand_roll_joint_position_controller/command",
+        "/surenaV/r_hand_pitch_joint_position_controller/command"
+    };
+    for (const auto& topic : right_arm_topics) {
+        right_arm_pubs.push_back(nh.advertise<std_msgs::Float64>(topic, 10));
+    }
+
+    // Left Arm Publishers
+    std::vector<std::string> left_arm_topics = {
+        "/surenaV/l_arm_pitch_joint_position_controller/command",
+        "/surenaV/l_arm_roll_joint_position_controller/command",
+        "/surenaV/l_elbow_pitch_joint_position_controller/command",
+        "/surenaV/l_forearm_roll_joint_position_controller/command",
+        "/surenaV/l_forearm_link_joint_position_controller/command",
+        "/surenaV/l_hand_roll_joint_position_controller/command",
+        "/surenaV/l_hand_pitch_joint_position_controller/command"
+    };
+    for (const auto& topic : left_arm_topics) {
+        left_arm_pubs.push_back(nh.advertise<std_msgs::Float64>(topic, 10));
+    }
+
+    // Head Publishers
+    std::vector<std::string> head_topics = {
+        "/surenaV/head_roll_joint_position_controller/command",
+        "/surenaV/head_pitch_joint_position_controller/command",
+        "/surenaV/head_yaw_joint_position_controller/command"
+    };
+    for (const auto& topic : head_topics) {
+        head_pubs.push_back(nh.advertise<std_msgs::Float64>(topic, 10));
+    }
+
+    // Finger Publishers, in kFingerJoints order
+    for (const auto& fj : kFingerJoints) {
+        finger_pubs.push_back(nh.advertise<std_msgs::Float64>(
+            std::string("/surenaV/") + fj.joint + "_joint_position_controller/command", 10));
+    }
+
+    // Subscribers
+    ros::Subscriber joint_sub = nh.subscribe("/joint_angles_gazebo", 10, GazeboCallback);
+    ros::Subscriber finger_sub = nh.subscribe("/surenaV/finger_joint_angles", 10, FingerJointCallback);
+
+    ROS_INFO("Surena Gazebo bridge node is running (%zu finger joints wired).",
+             kFingerJoints.size());
+    ros::spin();
+
+    return 0;
+}
