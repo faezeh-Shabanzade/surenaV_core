@@ -191,6 +191,39 @@ void S5_hand::doQP(VectorXd q_in) {
     if(q_next(6)>toRad(maximum[6])+.005){ q_next(6)=toRad(maximum[6]); cout<<"q7 out of range!"<<endl;}
 }
 
+void S5_hand::doQP_position(VectorXd q_in) {
+    // Position-only QP (orientation term omitted). Used for curve tracing.
+    calculate_jacobian(q_in, this->angle_fix_shd, this->J_palm, this->J_w_palm);
+
+    G.resize(7, 7);
+    g.resize(7, 1);
+
+    G = power * MatrixXd::Identity(7, 7) + 2 * palm_position_power * J_palm.transpose() * J_palm;
+    g = -2 * palm_position_power * J_palm.transpose() * V;
+
+    CI.resize(7, 14);
+    CI << MatrixXd::Identity(7, 7) * (-1), MatrixXd::Identity(7, 7);
+    ci0.resize(14, 1);
+    for (int i = 0; i < 7; i++) {
+        ci0(i)     = std::min((toRad(maximum[i]) - q_in(i)) / T, qdot_max);
+        ci0(7 + i) = -std::max((toRad(minimum[i]) - q_in(i)) / T, -qdot_max);
+    }
+
+    CE.resize(0, 0);
+    ce0.resize(0);
+
+    qdot.resize(7, 1);
+    solve_quadprog(G, g, CE, ce0, CI, ci0, qdot);
+
+    q_next.resize(7, 1);
+    q_next = q_in + T * qdot;
+
+    for (int i = 0; i < 7; i++) {
+        if (q_next(i) < toRad(minimum[i]) - .005) { q_next(i) = toRad(minimum[i]); }
+        if (q_next(i) > toRad(maximum[i]) + .005) { q_next(i) = toRad(maximum[i]); }
+    }
+}
+
 // --- UTILITY & TRANSFORMATION FUNCTIONS ---
 double S5_hand::toRad(double d) { 
     return d * M_PI / 180.0; 

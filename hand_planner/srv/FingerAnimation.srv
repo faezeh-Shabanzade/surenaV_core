@@ -1,0 +1,9 @@
+# Request
+string scenario_name
+string hand_selection  # "right", "left" (default="right")
+float64 duration       # duration of one keyframe cycle [s]
+int32 repetitions      # number of cycles
+---
+# Response
+bool success
+string message

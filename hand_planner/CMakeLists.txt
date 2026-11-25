@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_srvs
   message_generation
   geometry_msgs
+  surena_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -73,6 +74,7 @@ add_service_files(
   MoveHandsGeneral.srv
   FingerControl.srv
   FingerScenario.srv
+  FingerAnimation.srv
   arm_back_to_home.srv
 )
 
@@ -87,7 +89,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES hand_planner_lib
-  CATKIN_DEPENDS roscpp std_msgs message_runtime std_srvs
+  CATKIN_DEPENDS roscpp std_msgs message_runtime std_srvs surena_msgs
   DEPENDS Eigen3
 )
 

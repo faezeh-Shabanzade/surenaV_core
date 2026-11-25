@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   std_srvs
   message_generation
+  surena_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -113,7 +114,7 @@ generate_messages(
 catkin_package(
  INCLUDE_DIRS include
  LIBRARIES gait_planner_lib
- CATKIN_DEPENDS roscpp rospy std_msgs message_runtime
+ CATKIN_DEPENDS roscpp rospy std_msgs message_runtime surena_msgs
  DEPENDS Eigen3
 #  DEPENDS system_lib
 )

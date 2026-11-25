@@ -27,6 +27,8 @@
 #include <std_msgs/Int32.h>
 #include <std_msgs/Int32MultiArray.h>
 #include <std_msgs/Float64MultiArray.h>
+#include <sensor_msgs/JointState.h>
+#include "surena_msgs/JointSensorRead.h"
 #include "hand_planner/DetectionInfoArray.h"
 #include "hand_planner/move_hand_single.h"
 #include "hand_planner/move_hand_both.h"
@@ -41,6 +43,7 @@
 #include "hand_planner/MoveHandsGeneral.h"
 #include "hand_planner/FingerControl.h"
 #include "hand_planner/FingerScenario.h"
+#include "hand_planner/FingerAnimation.h"
 #include "hand_planner/arm_back_to_home.h"
 
 using namespace std;
@@ -56,6 +59,9 @@ public:
     const std::vector<double>& getHeadMotorCommands() const;
     const std::vector<double>& getHeadGazeboCommands() const;
     const std::vector<double>& getFingerMotorCommands() const;
+    const std::vector<double>& getFingerGazeboCommands() const;
+    // Finger control access (used by RobotManager's /set_joint_angle servo sync)
+    FingerControl* getFingerControl() { return finger_control_.get(); }
 
 private:
     ros::Subscriber camera_data_sub;
@@ -65,6 +71,7 @@ private:
     ros::Subscriber hand_keyboard_sub_;
     ros::Subscriber head_keyboard_sub_;
     ros::Subscriber hall_sensor_sub_;
+    ros::Subscriber HJointSensorReadSub_;
     ros::ServiceServer move_hand_single_service;
     ros::ServiceServer move_hand_both_service;
     ros::ServiceServer grip_online_service;
@@ -80,10 +87,11 @@ private:
     ros::ServiceServer move_hands_general_srv_;
     ros::ServiceServer finger_control_service_;
     ros::ServiceServer finger_scenario_service_;
+    ros::ServiceServer finger_animation_service_;
     ros::ServiceServer arm_back_to_home_service_;
     ros::ServiceServer arm_home_service_;
+    ros::ServiceServer hand_joints_sensor_read_service_;
     ros::Publisher publish_trigger_pub_;
-  
     ros::WallTime hand_keyboard_last_input_;
     double hand_step_T_ = 1.0;
     double hand_max_dx_ = 0.08; 
@@ -118,6 +126,11 @@ private:
     double sum_r;
     double sum_l;
     int QcArr[29];
+    // Latest /surenaV/joint_states snapshot. Written by HandJointSensorRead_callback
+    // and read by service handlers on other AsyncSpinner threads, so it is guarded.
+    sensor_msgs::JointState HJointSensorRead;
+    mutable std::mutex hjoint_sensor_mutex_;
+    bool hjoint_sensor_received_ = false;
     int hall_sensors_state[8] = {};
     std_msgs::Float64MultiArray joint_angles_gazebo_;
     VectorXd q_rad_teleop;
@@ -162,6 +175,7 @@ private:
 
     void object_detect_callback(const hand_planner::DetectionInfoArray &msg);
     void joint_qc_callback(const std_msgs::Int32MultiArray::ConstPtr &qcArray);
+    void HandJointSensorRead_callback(const sensor_msgs::JointState::ConstPtr &jointstate);
     void teleoperation_callback(const std_msgs::Float64MultiArray &q_deg_teleop);
     void micArray_callback(const std_msgs::Float64 &msg);
     void hand_keyboard_callback(const std_msgs::Int32::ConstPtr& msg);
@@ -172,6 +186,10 @@ private:
 
     MatrixXd scenario_target(HandType type, string scenario, int i, VectorXd ee_pos, string ee_ini_pos);
     VectorXd reach_target(S5_hand& hand_model, VectorXd& q_arm, MatrixXd& qref_arm, double& sum_arm, VectorXd& q_init_arm, MatrixXd targets, string scenario, int M);
+    // Trace a curve ("circle" / "circle2") by chaining min-jerk reaches through
+    // circle waypoints, position-only QP (verified numerically: <=0.2 mm waypoint
+    // error per hand, mirror-symmetric). See README "curve-drawing scenarios".
+    VectorXd reach_curve(S5_hand& hand_model, VectorXd& q_arm, MatrixXd& qref_arm, double& sum_arm, VectorXd& q_init_arm, string scenario);
     Vector2d head_follow_hand(HandType type, const VectorXd& q_arm);
 
     bool single_hand(hand_planner::move_hand_single::Request &req, hand_planner::move_hand_single::Response &res);
@@ -188,12 +206,12 @@ private:
     bool move_hand_general_left_handler(hand_planner::MoveHandGeneral::Request &req, hand_planner::MoveHandGeneral::Response &res);
     bool move_hands_general_handler(hand_planner::MoveHandsGeneral::Request &req, hand_planner::MoveHandsGeneral::Response &res);
     bool arm_home_service_handler(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
-    
+    bool HandJointsSensorReadService(surena_msgs::JointSensorRead::Request &req, surena_msgs::JointSensorRead::Response &res);
+
     // Finger control services
     bool fingerControlService(hand_planner::FingerControl::Request &req, hand_planner::FingerControl::Response &res);
     bool fingerScenarioService(hand_planner::FingerScenario::Request &req, hand_planner::FingerScenario::Response &res);
-    // Finger control access methods
-    FingerControl* getFingerControl() { return finger_control_.get(); }
+    bool fingerAnimationService(hand_planner::FingerAnimation::Request &req, hand_planner::FingerAnimation::Response &res);
   
     bool arm_back_to_home_handler(hand_planner::arm_back_to_home::Request &req, hand_planner::arm_back_to_home::Response &res);
 };

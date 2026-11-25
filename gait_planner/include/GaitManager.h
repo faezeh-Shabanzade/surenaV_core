@@ -12,6 +12,7 @@
 #include <std_srvs/Empty.h>
 #include <std_msgs/Empty.h>
 #include <std_msgs/Int32.h>
+#include <mutex>
 #include <sensor_msgs/JointState.h>
 #include "sensor_msgs/Imu.h"
 #include <std_msgs/Int32MultiArray.h>
@@ -24,6 +25,7 @@
 #include "gait_planner/Trajectory.h"
 #include "gait_planner/GeneralTraj.h"
 #include <gait_planner/KeyboardWalkSeq.h>
+#include "surena_msgs/JointSensorRead.h"
 
 
 #include <Robot.h>
@@ -68,6 +70,9 @@ public:
     bool keyboardWalk(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
     bool keyboardWalkSeq(gait_planner::KeyboardWalkSeq::Request &req,
             gait_planner::KeyboardWalkSeq::Response &res);
+    bool GaitJointsSensorReadService(surena_msgs::JointSensorRead::Request &req,
+                                     surena_msgs::JointSensorRead::Response &res);
+    void GaitJointSensorRead_callback(const sensor_msgs::JointState::ConstPtr &jointstate);
     void keyboardHandler(const std_msgs::Int32 &msg);
     bool computeLowerLimbJointMotion(double jnt_command[], int iter);
     int sgn(double v);
@@ -92,6 +97,7 @@ private:
     ros::Subscriber GyroSub_;
     ros::Subscriber bumpSub_;
     ros::Subscriber keyboardCommandSub_;
+    ros::Subscriber GJointSensorReadSub_;
     ros::ServiceServer jointCommand_;
     ros::ServiceServer absPrinter_;
     ros::ServiceServer walkService_;
@@ -99,6 +105,7 @@ private:
     ros::ServiceServer homeService_;
     ros::ServiceServer dummyCommand_;
     ros::ServiceServer keyboardWalkSeqService_;
+    ros::ServiceServer gait_joints_sensor_read_service_;
     ros::Publisher publish_trigger_pub_;
     
     bool isWalkingWithKeyboard;
@@ -117,6 +124,11 @@ private:
     int motorDir_[12];
     bool collision_;
     int bumpOrder_[8];
+    // Latest /surenaV/joint_states snapshot. Written by GaitJointSensorRead_callback
+    // and read by service handlers on other AsyncSpinner threads, so it is guarded.
+    sensor_msgs::JointState GJointSensorRead;
+    mutable std::mutex gjoint_sensor_mutex_;
+    bool gjoint_sensor_received_ = false;
     mutable std::mutex command_mutex_;
     double realCoM_z;
 

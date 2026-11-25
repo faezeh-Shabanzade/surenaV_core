@@ -1,5 +1,30 @@
 #include "GaitManager.h"
 
+#include <limits>
+#include <map>
+
+namespace {
+// Canonical whole-body joint index -> joint name as published on
+// /surenaV/joint_states. The indices are the 0-28 layout that
+// gazebo_bridge.cpp fans out and that motorCommandArray_ uses.
+// Lower body only: ids 12-28 are the upper body and are served by
+// HandManager::HandJointsSensorReadService instead.
+const std::map<int, std::string> kLowerBodyJointNames = {
+    {0, "r_hip_yaw_joint"},
+    {1, "r_hip_roll_joint"},
+    {2, "r_hip_pitch_joint"},
+    {3, "r_knee_joint"},
+    {4, "r_ankle_pitch_joint"},
+    {5, "r_ankle_roll_joint"},
+    {6, "l_hip_yaw_joint"},
+    {7, "l_hip_roll_joint"},
+    {8, "l_hip_pitch_joint"},
+    {9, "l_knee_joint"},
+    {10, "l_ankle_pitch_joint"},
+    {11, "l_ankle_roll_joint"},
+};
+}  // namespace
+
 GaitManager::GaitManager(ros::NodeHandle *n)
 {
     string config_path = ros::package::getPath("gait_planner") + "/config/surenav_config.json";
@@ -22,6 +47,8 @@ GaitManager::GaitManager(ros::NodeHandle *n)
     bumpSub_ = n->subscribe("/surena/bump_sensor_state", 100, &GaitManager::bumpCallback, this);
     keyboardCommandSub_ = n->subscribe("/keyboard_command", 1, &GaitManager::keyboardHandler, this);
     keyboardWalkSeqService_ = n->advertiseService("keyboard_walk_seq", &GaitManager::keyboardWalkSeq, this);
+    gait_joints_sensor_read_service_ = n->advertiseService("gjoints_sens_read_srv", &GaitManager::GaitJointsSensorReadService, this);
+    GJointSensorReadSub_ = n->subscribe("/surenaV/joint_states", 10, &GaitManager::GaitJointSensorRead_callback, this);
     publish_trigger_pub_ = n->advertise<std_msgs::Empty>("robot_manager/publish_trigger", 1);
 
     b = 0.049;
@@ -308,6 +335,68 @@ bool GaitManager::setBumpZero()
         rBumpOffset_[i] = realRBump_[i];
         lBumpOffset_[i] = realLBump_[i];
     }
+}
+
+bool GaitManager::GaitJointsSensorReadService(surena_msgs::JointSensorRead::Request &req,
+                                              surena_msgs::JointSensorRead::Response &res)
+{
+    res.angle = std::numeric_limits<double>::quiet_NaN();
+
+    // The srv carries no success field, so a bad request is reported by returning
+    // false: rosservice/ServiceClient::call() then surfaces it as a failed call.
+    const auto name_it = kLowerBodyJointNames.find(req.id);
+    if (name_it == kLowerBodyJointNames.end()) {
+        ROS_WARN("gjoints_sens_read_srv: id %d is not a lower-body joint (expected 0-11). "
+                 "Upper-body ids 12-28 are served by hjoints_sens_read_srv.", req.id);
+        return false;
+    }
+    const std::string &joint_name = name_it->second;
+
+    std::lock_guard<std::mutex> lock(gjoint_sensor_mutex_);
+    if (!gjoint_sensor_received_) {
+        ROS_WARN("gjoints_sens_read_srv: no /surenaV/joint_states message received yet "
+                 "(is Gazebo running and unpaused?).");
+        return false;
+    }
+
+    // Look up by name rather than by position: Gazebo's ordering in the message is
+    // not a contract, and the message carries all 29 joints, not just the lower body.
+    for (size_t i = 0; i < GJointSensorRead.name.size(); ++i) {
+        if (GJointSensorRead.name[i] != joint_name)
+            continue;
+
+        if (i >= GJointSensorRead.position.size()) {
+            ROS_WARN("gjoints_sens_read_srv: '%s' is at name index %zu but position[] holds "
+                     "only %zu entries.", joint_name.c_str(), i, GJointSensorRead.position.size());
+            return false;
+        }
+        res.angle = GJointSensorRead.position[i];
+        return true;
+    }
+
+    ROS_WARN("gjoints_sens_read_srv: joint '%s' (id %d) is not present in /surenaV/joint_states.",
+             joint_name.c_str(), req.id);
+    return false;
+}
+
+void GaitManager::GaitJointSensorRead_callback(const sensor_msgs::JointState::ConstPtr &jointstate)
+{
+    std::lock_guard<std::mutex> lock(gjoint_sensor_mutex_);
+    GJointSensorRead = *jointstate;
+    gjoint_sensor_received_ = true;
+
+    // std::stringstream ss;
+    // for (size_t i = 0; i < jointstate->position.size(); ++i) {
+    //     ss << jointstate->name[i] << "=" << std::fixed << std::setprecision(3)
+    //        << jointstate->position[i] << "  ";
+    // }
+
+    // Counter-based throttle: independent of /clock, which stays at 0 when
+    // use_sim_time is true and Gazebo is not publishing.
+    // static unsigned long msg_count = 0;
+    // if (msg_count++ % 50 == 0) {
+    //     ROS_INFO("gait joint_states #%lu | n=%zu | %s", msg_count, jointstate->position.size(), ss.str().c_str());
+    // }
 }
 
 bool GaitManager::dummyCallback(gait_planner::getdata::Request &req,

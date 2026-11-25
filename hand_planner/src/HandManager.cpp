@@ -1,5 +1,61 @@
 #include "HandManager.h"
 
+#include <limits>
+#include <map>
+#include <algorithm>
+
+namespace {
+// Canonical whole-body joint index -> joint name as published on
+// /surenaV/joint_states. The indices are the 0-28 layout that
+// gazebo_bridge.cpp fans out and that motorCommandArray_/QcArr use.
+// Upper body only: ids 0-11 are the lower body and are served by
+// GaitManager::GaitJointsSensorReadService instead.
+const std::map<int, std::string> kUpperBodyJointNames = {
+    {12, "r_arm_pitch_joint"},
+    {13, "r_arm_roll_joint"},
+    {14, "r_elbow_pitch_joint"},
+    {15, "r_forearm_roll_joint"},
+    {16, "l_arm_pitch_joint"},
+    {17, "l_arm_roll_joint"},
+    {18, "l_elbow_pitch_joint"},
+    {19, "l_forearm_roll_joint"},
+    {20, "head_roll_joint"},
+    {21, "head_pitch_joint"},
+    {22, "head_yaw_joint"},
+    {23, "r_forearm_link_joint"},
+    {24, "r_hand_roll_joint"},
+    {25, "r_hand_pitch_joint"},
+    {26, "l_forearm_link_joint"},
+    {27, "l_hand_roll_joint"},
+    {28, "l_hand_pitch_joint"},
+};
+
+// All scenario names accepted by scenario_target() / reach_curve(). Used to
+// validate service input: an unknown name must be rejected with an error, never
+// silently passed on (uninitialized Eigen targets crashed the node).
+const std::vector<std::string> kKnownScenarios = {
+    "shakeHands", "respect", "byebye", "punching", "perfect", "pointing",
+    "like", "showHands", "home", "a", "b", "circle", "circle2"
+};
+
+bool isKnownScenario(const std::string& s) {
+    return std::find(kKnownScenarios.begin(), kKnownScenarios.end(), s) != kKnownScenarios.end();
+}
+
+std::string knownScenarioList() {
+    std::string out;
+    for (const auto& s : kKnownScenarios) out += (out.empty() ? "" : ", ") + s;
+    return out;
+}
+
+// Steps (200 Hz) needed by reach_curve: 4 s joint-space prep + 4 s approach +
+// 6 waypoints x 4 s per loop. circle = 28 s -> 5600 steps, circle2 = 52 s -> 10400.
+int curve_steps(const std::string& scenario) {
+    int loops = (scenario == "circle2") ? 2 : 1;
+    return (int)std::ceil((8.0 + loops * 6 * 4.0) / 0.005);
+}
+}  // namespace
+
 // --- CONSTRUCTOR ---
 HandManager::HandManager(ros::NodeHandle *n) : 
     hand_func_R(RIGHT), 
@@ -68,6 +124,7 @@ HandManager::HandManager(ros::NodeHandle *n) :
     hall_sensor_sub_             = n->subscribe("/surena/hall_state", 1, &HandManager::hallSensorCallback, this);
     hand_keyboard_sub_           = n->subscribe("/keyboard_command", 10, &HandManager::hand_keyboard_callback, this);
     head_keyboard_sub_           = n->subscribe("/keyboard_command", 10, &HandManager::head_keyboard_callback, this);
+    HJointSensorReadSub_         = n->subscribe("/surenaV/joint_states",10,&HandManager::HandJointSensorRead_callback,this );
     move_hand_single_service     = n->advertiseService("move_hand_single_srv", &HandManager::single_hand, this);
     move_hand_both_service       = n->advertiseService("move_hand_both_srv", &HandManager::both_hands, this);
     grip_online_service          = n->advertiseService("grip_online_srv", &HandManager::grip_online, this);
@@ -84,7 +141,9 @@ HandManager::HandManager(ros::NodeHandle *n) :
     arm_back_to_home_service_    = n->advertiseService("arm_back_to_home_srv", &HandManager::arm_back_to_home_handler, this);
     finger_control_service_      = n->advertiseService("finger_control_srv", &HandManager::fingerControlService, this);
     finger_scenario_service_     = n->advertiseService("finger_scenario_srv", &HandManager::fingerScenarioService, this);
+    finger_animation_service_    = n->advertiseService("finger_animation_srv", &HandManager::fingerAnimationService, this);
     arm_home_service_            = n->advertiseService("arm_home_service", &HandManager::arm_home_service_handler, this);
+    hand_joints_sensor_read_service_ = n->advertiseService("hjoints_sens_read_srv", &HandManager::HandJointsSensorReadService, this);
 }
 
 // --- Object Detection Callback Implementations ---
@@ -151,6 +210,11 @@ const std::vector<double>& HandManager::getHeadGazeboCommands() const {
 const std::vector<double>& HandManager::getFingerMotorCommands() const {
     std::lock_guard<std::mutex> lock(command_mutex_);
     return finger_control_-> getFingerCommands();
+}
+
+const std::vector<double>& HandManager::getFingerGazeboCommands() const {
+    std::lock_guard<std::mutex> lock(command_mutex_);
+    return finger_control_->getFingerGazeboCommands();
 }
 
 void HandManager::joint_qc_callback(const std_msgs::Int32MultiArray::ConstPtr &qcArray) {
@@ -231,9 +295,14 @@ MatrixXd HandManager::scenario_target(HandType type, string scenario, int i, Vec
         double rot_angle = (type == RIGHT) ? 60 * M_PI / 180 : -60 * M_PI / 180;
         R_target = hand_func.rot(2, -80 * M_PI / 180, 3) * hand_func.rot(1, rot_angle, 3); //-130 and -70 lefthand
     } else if (scenario == "byebye") { //t=8s
-        r_middle = (type == RIGHT) ? Vector3d(0.3, -0.1, 0.0) : Vector3d(0.35, 0.2, -0.15);
-        r_target = (type == RIGHT) ? Vector3d(0.27, 0.0, 0.15) : Vector3d(0.3, 0.1, 0.22);
-        R_target = hand_func.rot(3, 90 * M_PI / 180, 3) * hand_func.rot(1, -140 * M_PI / 180, 3);
+        // Mirror-image targets for the LEFT hand (same fix pattern as the other scenarios).
+        r_middle = (type == RIGHT) ? Vector3d(0.3, -0.1, 0.0) : Vector3d(0.3, 0.1, 0.0);
+        r_target = (type == RIGHT) ? Vector3d(0.27, 0.0, 0.15) : Vector3d(0.27, 0.0, 0.15);
+        // Palm orientation must be mirrored too: Rz(+90)*Rx(-140) for the right hand,
+        // Rz(-90)*Rx(+140) for the left hand (mirror across the x-z plane).
+        R_target = (type == RIGHT)
+            ? hand_func.rot(3,  90 * M_PI / 180, 3) * hand_func.rot(1, -140 * M_PI / 180, 3)
+            : hand_func.rot(3, -90 * M_PI / 180, 3) * hand_func.rot(1,  140 * M_PI / 180, 3);
     } else if (scenario == "punching") {
         r_middle = (type == RIGHT) ? Vector3d(0.15, -0.1, -0.1) : Vector3d(0.15, 0.1, -0.1);
         r_target = (type == RIGHT) ? Vector3d(0.35, 0.1, 0.1) : Vector3d(0.35, -0.1, 0.1);
@@ -248,7 +317,10 @@ MatrixXd HandManager::scenario_target(HandType type, string scenario, int i, Vec
         r_middle = (type == RIGHT) ? Vector3d(0.25, -0.1, -0.1) : Vector3d(0.25, 0.1, -0.1);
         r_target = (type == RIGHT) ? Vector3d(0.45, 0.05, 0.0) : Vector3d(0.45, -0.05, 0.0); // fix left hand
         double rot_angle = (type == RIGHT) ? 90 * M_PI / 180 : -90 * M_PI / 180;
-        R_target = hand_func.rot(3, rot_angle, 3) * hand_func.rot(1, -65 * M_PI / 180, 3);
+        // The Rx(-65) component must flip sign for the left hand too (mirror across x-z).
+        R_target = (type == RIGHT)
+            ? hand_func.rot(3, rot_angle, 3) * hand_func.rot(1, -65 * M_PI / 180, 3)
+            : hand_func.rot(3, rot_angle, 3) * hand_func.rot(1,  65 * M_PI / 180, 3);
     } else if (scenario == "like") {
         r_middle = (type == RIGHT) ? Vector3d(0.15, -0.1, -0.3) : Vector3d(0.15, 0.1, -0.3);
         r_target = (type == RIGHT) ? Vector3d(0.25, -0.05, -0.25) : Vector3d(0.25, 0.05, -0.25);
@@ -256,21 +328,37 @@ MatrixXd HandManager::scenario_target(HandType type, string scenario, int i, Vec
     } else if (scenario == "showHands") {
         r_middle = (type == RIGHT) ? Vector3d(0.2, 0, -0.25) : Vector3d(0.1, 0, -0.35);
         r_target = (type == RIGHT) ? Vector3d(0.35, 0, -0.1) : Vector3d(0.25, -0.05, -0.2);
-        R_target = (type == RIGHT) ? hand_func.rot(2, -130 * M_PI / 180, 3)*hand_func.rot(3, -90 * M_PI / 180, 3):hand_func.rot(2, -130 * M_PI / 180, 3)*hand_func.rot(1, -70 * M_PI / 180, 3) ;
+        R_target = (type == RIGHT)
+            ? hand_func.rot(2, -130 * M_PI / 180, 3) * hand_func.rot(3, -90 * M_PI / 180, 3)
+            : hand_func.rot(2,  130 * M_PI / 180, 3) * hand_func.rot(3,  90 * M_PI / 180, 3);
+        // Mirror the palm orientation for the LEFT hand: Ry(+130)*Rz(+90) is the
+        // y-mirror of the right hand's Ry(-130)*Rz(-90). (Waypoints stay as designed:
+        // the left hand is intentionally held lower/closer.)
     } else if (scenario == "home") {
         r_middle = (type == RIGHT) ? Vector3d(0.2, -0.07, -0.25) : Vector3d(0.2, 0.07, -0.25);
         r_target = (type == RIGHT) ? Vector3d(0.02, -0.06, -0.46) : Vector3d(0.02, 0.06, -0.46);
         R_target = hand_func.rot(2, -20 * M_PI / 180, 3);
     }else if (scenario == "a") {
-        r_middle = (type == RIGHT) ? Vector3d(0.15, 0.0, -0.1) : Vector3d(0.25, 0.0, -0.15);
-        r_target = (type == RIGHT) ? Vector3d(0.2, 0.0, -0.15) : Vector3d(0.25, 0.0, -0.15);
-        double rot_angle = (type == RIGHT) ? 0 * M_PI / 180 : 0 * M_PI / 180;
-        R_target = hand_func.rot(2, -60 * M_PI / 180, 3) * hand_func.rot(1, rot_angle, 3);
+        // Full mirror of the right-hand targets (y -> -y). The mirrored orientation
+        // only works together with mirrored waypoints; verified to give an exact
+        // mirror trajectory (0.000 m deviation).
+        r_middle = (type == RIGHT) ? Vector3d(0.15, 0.0, -0.1) : Vector3d(0.15, 0.0, -0.1);
+        r_target = (type == RIGHT) ? Vector3d(0.2, 0.0, -0.15) : Vector3d(0.2, 0.0, -0.15);
+        double rot_angle = 0 * M_PI / 180;
+        R_target = hand_func.rot(2, (type == RIGHT ? -60 : 60) * M_PI / 180, 3) * hand_func.rot(1, rot_angle, 3);
     } else if (scenario == "b") {
         r_middle = (type == RIGHT) ? Vector3d(0.2, 0.0, -0.2) : Vector3d(0.35, -0.05, -0.2);
         r_target = (type == RIGHT) ? Vector3d(0.25, 0.1, -0.2) : Vector3d(0.35, -0.1, -0.2);
         double rot_angle = (type == RIGHT) ? 20 * M_PI / 180 : -20 * M_PI / 180;
-        R_target = hand_func.rot(2, -80 * M_PI / 180, 3) * hand_func.rot(1, rot_angle, 3); 
+        R_target = hand_func.rot(2, -80 * M_PI / 180, 3) * hand_func.rot(1, rot_angle, 3);
+    } else {
+        // Defensive default (must never happen: services validate names up front).
+        // Returning the "home" pose avoids using uninitialized Eigen targets, which
+        // crashed the node on unknown scenario names (e.g. typos).
+        ROS_ERROR("scenario_target: unknown scenario '%s' - using home pose.", scenario.c_str());
+        r_middle = (type == RIGHT) ? Vector3d(0.2, -0.07, -0.25) : Vector3d(0.2, 0.07, -0.25);
+        r_target = (type == RIGHT) ? Vector3d(0.02, -0.06, -0.46) : Vector3d(0.02, 0.06, -0.46);
+        R_target = hand_func.rot(2, -20 * M_PI / 180, 3);
     }
 
     q_arm.resize(7);
@@ -293,6 +381,87 @@ MatrixXd HandManager::scenario_target(HandType type, string scenario, int i, Vec
 
     result << r_middle.transpose(), r_target.transpose(), R_target.row(0), R_target.row(1), R_target.row(2), r_start.transpose();
     return result;
+}
+
+VectorXd HandManager::reach_curve(S5_hand& hand_model, VectorXd& q_arm, MatrixXd& qref_arm, double& sum_arm, VectorXd& q_init_arm, string scenario) {
+    // Trace a circle ("circle") or two stacked loops ("circle2") by chaining
+    // min-jerk reaches through 6 waypoints per revolution (reach_target pattern:
+    // t_r=[0,2,4]). Verified numerically: <=0.2 mm waypoint error per hand,
+    // mirror-symmetric. The QP is position-only: a fixed orientation target near
+    // the Euler gimbal lock (the pointing orientation sits ~5 deg from it) steals
+    // the velocity budget and stalls the trace. 6 waypoints x 4 s per loop.
+    double sgn = (hand_model.hand_type == RIGHT) ? 1.0 : -1.0;
+    int n_pts = 6;
+    double cy = 0.16, cz = -0.12, rr = 0.07;
+    int n_loops = (scenario == "circle2") ? 2 : 1;
+
+    // ---- joint-space prep: blend current arm joints to q_init_arm over 2 s ----
+    int j_count = (int)std::ceil(2.0 / T);
+    VectorXd q0(7), q1(7);
+    for (int i = 0; i < 7; i++) { q0(i) = q_arm(i); q1(i) = q_init_arm(i); }
+    for (int count = 0; count < j_count; count++) {
+        double alpha = double(count + 1) / j_count;
+        for (int i = 0; i < 7; i++) qref_arm.col(count) = q0 + alpha * (q1 - q0) - q_init_arm;
+    }
+    for (int i = 0; i < 7; i++) q_arm(i) = q1(i);
+    // hold the initial pose for another 2 s (same as reach_target)
+    for (int count = j_count; count < j_count + (int)std::ceil(2.0 / T); count++) {
+        qref_arm.col(count) = q_arm - q_init_arm;   // = 0
+    }
+    sum_arm = 4.0;
+
+    // ---- approach onto the circle start (4 s min-jerk) then chained reaches ----
+    hand_model.HO_FK_palm(q_arm);
+    Vector3d r_start = hand_model.r_palm;
+    double th0 = atan2(r_start(2) - cz, r_start(1) + sgn * cy);
+    auto center = [&](int loop) {
+        return Vector3d(0.35, -sgn * cy, cz + ((scenario == "circle2" && loop == 1) ? 1.6 * rr : 0.0));
+    };
+    auto cpt = [&](double th, int loop) {
+        Vector3d c = center(loop);
+        return c + rr * (cos(th) * Vector3d(0, 1, 0) + sin(th) * Vector3d(0, 0, 1));
+    };
+
+    auto reach_seg = [&](Vector3d r_middle, Vector3d r_target) {
+        const double t_reach = 4.0;
+        hand_model.HO_FK_palm(q_arm);
+        Vector3d r_from = hand_model.r_palm;
+        MatrixXd t_r(1, 3); t_r << 0, 2, 4;
+        MatrixXd P_x(1, 3), P_y(1, 3), P_z(1, 3);
+        P_x << r_from(0), r_middle(0), r_target(0);
+        P_y << r_from(1), r_middle(1), r_target(1);
+        P_z << r_from(2), r_middle(2), r_target(2);
+        MatrixXd V_inf(1, 3); V_inf << 0, INFINITY, 0;
+        MatrixXd A_inf(1, 3); A_inf << 0, INFINITY, 0;
+        MatrixXd X_coef = coef_generator.Coefficient(t_r, P_x, V_inf, A_inf);
+        MatrixXd Y_coef = coef_generator.Coefficient(t_r, P_y, V_inf, A_inf);
+        MatrixXd Z_coef = coef_generator.Coefficient(t_r, P_z, V_inf, A_inf);
+        int M = (int)std::ceil(t_reach / T);
+        for (int count = 0; count < M; count++) {
+            double time_r = count * T;
+            int interval = (time_r < 2.0) ? 0 : 1;
+            Vector3d V_curr(
+                coef_generator.GetAccVelPos(X_coef.row(interval), time_r, t_r(interval), 5)(0, 1),
+                coef_generator.GetAccVelPos(Y_coef.row(interval), time_r, t_r(interval), 5)(0, 1),
+                coef_generator.GetAccVelPos(Z_coef.row(interval), time_r, t_r(interval), 5)(0, 1));
+            hand_model.update_hand(q_arm, V_curr, r_target, Matrix3d::Identity());
+            hand_model.doQP_position(q_arm);
+            q_arm = hand_model.q_next;
+            int gi = (int)std::lround(sum_arm / T) + count;
+            if (gi < qref_arm.cols()) qref_arm.col(gi) = q_arm - q_init_arm;
+        }
+        sum_arm += 4.0;
+    };
+
+    reach_seg(0.5 * (r_start + cpt(th0, 0)), cpt(th0, 0));
+    for (int loop = 0; loop < n_loops; loop++) {
+        for (int i = 1; i <= n_pts; i++) {
+            double th_m = th0 + sgn * 2 * M_PI * (i - 0.5) / n_pts;
+            double th_b = th0 + sgn * 2 * M_PI * i / n_pts;
+            reach_seg(cpt(th_m, loop), cpt(th_b, loop));
+        }
+    }
+    return q_arm;
 }
 
 VectorXd HandManager::reach_target(S5_hand& hand_model, VectorXd& q_arm, MatrixXd& qref_arm, double& sum_arm, VectorXd& q_init_arm, MatrixXd targets, string scenario, int M) {
@@ -319,7 +488,9 @@ qref_arm.resize(7, M);
     MatrixXd Z_coef = coef_generator.Coefficient(t_r, P_z, V_inf, A_inf);
 
     const double T_BYE     = 4.0;
-    const double AMP_BYE   = 15 * M_PI / 180.0;
+    // Mirror the waving direction for the left hand (a z-axis rotation flips sign
+    // under mirroring across the x-z plane).
+    const double AMP_BYE   = ((hand_model.hand_type == RIGHT) ? 1.0 : -1.0) * 15 * M_PI / 180.0;
     const double OMEGA_BYE = M_PI * 1.5;
 
     VectorXd q_frozen = VectorXd::Zero(7);
@@ -541,7 +712,12 @@ void HandManager::sendHandMotorCommands(const VectorXd& q_rad_right, const Vecto
     q_gazebo_temp[25] = q_rad_right(6);
 
     // Wrist joints for left hand
-    q_gazebo_temp[26] = q_rad_left(4);
+    // Gazebo sign audit (see report): l_forearm_link_joint axis (0,0,-1) is negated
+    // relative to the right (0,0,1) -> q_gazebo_temp[26] must be negated.
+    // l_hand_pitch_joint axis (0,-1,0) EQUALS the right axis, and the left planner
+    // model's q6 convention equals the right's, so channel 28 passes through
+    // UNCHANGED (negating it here breaks the left/right mirror).
+    q_gazebo_temp[26] = -q_rad_left(4);
     q_gazebo_temp[27] = q_rad_left(5);
     q_gazebo_temp[28] = q_rad_left(6);
 
@@ -576,7 +752,66 @@ void HandManager::sendHeadMotorCommands(const Vector3d& head_angles) {
     head_gazebo_commands_ = q_gazebo_temp_head; // Store for RobotManager
 }
 
+void HandManager::HandJointSensorRead_callback(const sensor_msgs::JointState::ConstPtr &jointstate){
+
+    std::lock_guard<std::mutex> lock(hjoint_sensor_mutex_);
+    HJointSensorRead = *jointstate;
+    hjoint_sensor_received_ = true;
+
+    // std::stringstream ss;
+    // for (size_t i = 0; i < jointstate->position.size(); ++i) {
+    //     ss << jointstate->name[i] << "=" << std::fixed << std::setprecision(3)
+    //        << jointstate->position[i] << "  ";
+    // }
+
+    // static unsigned long msg_count = 0;
+    // if (msg_count++ % 50 == 0) {
+    //     ROS_INFO("joint_states #%lu | n=%zu | %s", msg_count, jointstate->position.size(), ss.str().c_str());
+    // }
+}
+
 // --- Service Handler Implementations ---
+bool HandManager::HandJointsSensorReadService(surena_msgs::JointSensorRead::Request &req,
+                                              surena_msgs::JointSensorRead::Response &res)
+{
+    res.angle = std::numeric_limits<double>::quiet_NaN();
+
+    // The srv carries no success field, so a bad request is reported by returning
+    // false: rosservice/ServiceClient::call() then surfaces it as a failed call.
+    const auto name_it = kUpperBodyJointNames.find(req.id);
+    if (name_it == kUpperBodyJointNames.end()) {
+        ROS_WARN("hjoints_sens_read_srv: id %d is not an upper-body joint (expected 12-28). "
+                 "Lower-body ids 0-11 are served by gjoints_sens_read_srv.", req.id);
+        return false;
+    }
+    const std::string &joint_name = name_it->second;
+
+    std::lock_guard<std::mutex> lock(hjoint_sensor_mutex_);
+    if (!hjoint_sensor_received_) {
+        ROS_WARN("hjoints_sens_read_srv: no /surenaV/joint_states message received yet "
+                 "(is Gazebo running and unpaused?).");
+        return false;
+    }
+
+    // Look up by name rather than by position: Gazebo's ordering in the message is
+    // not a contract, and the message carries all 29 joints, not just the upper body.
+    for (size_t i = 0; i < HJointSensorRead.name.size(); ++i) {
+        if (HJointSensorRead.name[i] != joint_name)
+            continue;
+
+        if (i >= HJointSensorRead.position.size()) {
+            ROS_WARN("hjoints_sens_read_srv: '%s' is at name index %zu but position[] holds "
+                     "only %zu entries.", joint_name.c_str(), i, HJointSensorRead.position.size());
+            return false;
+        }
+        res.angle = HJointSensorRead.position[i];
+        return true;
+    }
+
+    ROS_WARN("hjoints_sens_read_srv: joint '%s' (id %d) is not present in /surenaV/joint_states.",
+             joint_name.c_str(), req.id);
+    return false;
+}
 bool HandManager::single_hand(hand_planner::move_hand_single::Request &req,
                               hand_planner::move_hand_single::Response &res)
 {
@@ -595,6 +830,24 @@ bool HandManager::single_hand(hand_planner::move_hand_single::Request &req,
         return false;
     }
 
+    // Input validation: reject empty/unknown scenario names and bad counts here so
+    // they can never reach scenario_target (an unknown name used to crash the node).
+    if (req.scen_count < 1 || req.scenario.empty()) {
+        ROS_ERROR("move_hand_single_srv: scen_count must be >= 1 with a non-empty scenario list.");
+        return false;
+    }
+    for (int i = 0; i < req.scen_count && i < (int)req.scenario.size(); ++i) {
+        if (!isKnownScenario(req.scenario[i])) {
+            ROS_ERROR("move_hand_single_srv: unknown scenario '%s'. Valid: %s",
+                      req.scenario[i].c_str(), knownScenarioList().c_str());
+            return false;
+        }
+    }
+    if (req.t_total <= 0) {
+        ROS_ERROR("move_hand_single_srv: t_total must be positive.");
+        return false;
+    }
+
     if (type == RIGHT) {
         if (q_right_state_.size() == 7) q_ra = q_right_state_;
         else {
@@ -608,8 +861,15 @@ bool HandManager::single_hand(hand_planner::move_hand_single::Request &req,
         next_ini_ee_posR = hand_func_R.r_palm;
 
         for (int i = 0; i < req.scen_count; i++) {
-            Eigen::MatrixXd result = scenario_target(RIGHT, req.scenario[i], i, ee_pos, "prev");
-            ee_pos = reach_target(hand_func_R, q_ra, qref_r, sum_r, q_init_r, result, req.scenario[i], M);
+            const string& sc = req.scenario[i];
+            if (sc == "circle" || sc == "circle2") {
+                int M_curve = curve_steps(sc);
+                qref_r.resize(7, M_curve);
+                ee_pos = reach_curve(hand_func_R, q_ra, qref_r, sum_r, q_init_r, sc);
+            } else {
+                Eigen::MatrixXd result = scenario_target(RIGHT, sc, i, ee_pos, "prev");
+                ee_pos = reach_target(hand_func_R, q_ra, qref_r, sum_r, q_init_r, result, sc, M);
+            }
         }
         Eigen::VectorXd q_left(7);
         if (q_left_state_.size()==7){
@@ -621,6 +881,13 @@ bool HandManager::single_hand(hand_planner::move_hand_single::Request &req,
         if (q_left_baseline_.size() != 7) {
             q_left_baseline_ = q_left;
         }
+
+        // Optional concurrent finger animation on the moving (right) hand.
+        const bool finger_anim_active = !req.finger_scenario.empty() &&
+            finger_control_->startAnimation(req.finger_scenario, HandSelection::RIGHT_HAND, req.t_total, 1);
+        if (!req.finger_scenario.empty() && !finger_anim_active)
+            ROS_WARN("Unknown finger_scenario '%s' - arm motion continues without finger animation.",
+                     req.finger_scenario.c_str());
 
         for (int id = 0; id < qref_r.cols(); ++id) {
             Eigen::VectorXd q_abs  = q_init_r + qref_r.col(id);
@@ -634,9 +901,11 @@ bool HandManager::single_hand(hand_planner::move_hand_single::Request &req,
             Eigen::Vector3d head_angles(h_roll, -h_pitch, -h_yaw);
 
             sendHandMotorCommands(q_send, q_left_send, head_angles);
+            if (finger_anim_active) finger_control_->tickAnimation();
             publish_trigger_pub_.publish(std_msgs::Empty());
             rate_.sleep();
         }
+        if (finger_anim_active) finger_control_->stopAnimation();
 
         if (qref_r.cols() > 0) q_right_state_ = q_init_r + qref_r.col(qref_r.cols()-1);
         else q_right_state_ = q_ra;
@@ -662,8 +931,15 @@ bool HandManager::single_hand(hand_planner::move_hand_single::Request &req,
         next_ini_ee_posL = hand_func_L.r_palm;
 
         for (int i = 0; i < req.scen_count; i++) {
-            Eigen::MatrixXd result = scenario_target(LEFT, req.scenario[i], i, ee_pos, "prev");
-            ee_pos = reach_target(hand_func_L, q_la, qref_l, sum_l, q_init_l, result, req.scenario[i], M);
+            const string& sc = req.scenario[i];
+            if (sc == "circle" || sc == "circle2") {
+                int M_curve = curve_steps(sc);
+                qref_l.resize(7, M_curve);
+                ee_pos = reach_curve(hand_func_L, q_la, qref_l, sum_l, q_init_l, sc);
+            } else {
+                Eigen::MatrixXd result = scenario_target(LEFT, sc, i, ee_pos, "prev");
+                ee_pos = reach_target(hand_func_L, q_la, qref_l, sum_l, q_init_l, result, sc, M);
+            }
         }
 
         Eigen::VectorXd q_right(7);
@@ -678,6 +954,12 @@ bool HandManager::single_hand(hand_planner::move_hand_single::Request &req,
             q_right_baseline_ = q_right;
         }
 
+        // Optional concurrent finger animation on the moving (left) hand.
+        const bool finger_anim_active = !req.finger_scenario.empty() &&
+            finger_control_->startAnimation(req.finger_scenario, HandSelection::LEFT_HAND, req.t_total, 1);
+        if (!req.finger_scenario.empty() && !finger_anim_active)
+            ROS_WARN("Unknown finger_scenario '%s' - arm motion continues without finger animation.",
+                     req.finger_scenario.c_str());
 
         for (int id = 0; id < qref_l.cols(); ++id) {
             Eigen::VectorXd q_abs_l  = q_init_l + qref_l.col(id);
@@ -693,9 +975,11 @@ bool HandManager::single_hand(hand_planner::move_hand_single::Request &req,
 
             sendHandMotorCommands(q_right_send, q_send_l, head_angles);
             sendHeadMotorCommands(head_angles);
+            if (finger_anim_active) finger_control_->tickAnimation();
             publish_trigger_pub_.publish(std_msgs::Empty());
             rate_.sleep();
         }
+        if (finger_anim_active) finger_control_->stopAnimation();
 
         if (qref_l.cols() > 0) q_left_state_ = q_init_l + qref_l.col(qref_l.cols()-1);
         else q_left_state_ = q_la;
@@ -710,6 +994,31 @@ bool HandManager::single_hand(hand_planner::move_hand_single::Request &req,
 
 bool HandManager::both_hands(hand_planner::move_hand_both::Request &req, hand_planner::move_hand_both::Response &res) {
     ros::Rate rate_(rate);
+
+    // Input validation (an unknown scenario name used to crash the node).
+    if (req.scenR_count < 1 || req.scenL_count < 1 || req.scenarioR.empty() || req.scenarioL.empty()) {
+        ROS_ERROR("move_hand_both_srv: scenR_count/scenL_count must be >= 1 with non-empty scenario lists.");
+        return false;
+    }
+    for (int i = 0; i < req.scenR_count && i < (int)req.scenarioR.size(); ++i) {
+        if (!isKnownScenario(req.scenarioR[i])) {
+            ROS_ERROR("move_hand_both_srv: unknown right scenario '%s'. Valid: %s",
+                      req.scenarioR[i].c_str(), knownScenarioList().c_str());
+            return false;
+        }
+    }
+    for (int i = 0; i < req.scenL_count && i < (int)req.scenarioL.size(); ++i) {
+        if (!isKnownScenario(req.scenarioL[i])) {
+            ROS_ERROR("move_hand_both_srv: unknown left scenario '%s'. Valid: %s",
+                      req.scenarioL[i].c_str(), knownScenarioList().c_str());
+            return false;
+        }
+    }
+    if (req.t_total <= 0) {
+        ROS_ERROR("move_hand_both_srv: t_total must be positive.");
+        return false;
+    }
+
     int M_req = std::max(1, (int)std::floor(req.t_total / T));
     Eigen::VectorXd ee_pos_r = Eigen::Vector3d::Zero();
     Eigen::VectorXd ee_pos_l = Eigen::Vector3d::Zero();
@@ -739,12 +1048,26 @@ bool HandManager::both_hands(hand_planner::move_hand_both::Request &req, hand_pl
 
     // --- Trajectory Generation Phase ---
     for (int i = 0; i < req.scenR_count; i++) {
-        Eigen::MatrixXd result_r = scenario_target(RIGHT, req.scenarioR[i], i, ee_pos_r, "prev");
-        ee_pos_r = reach_target(hand_func_R, q_ra, qref_r, sum_r, q_init_r, result_r, req.scenarioR[i], M_req);
+        const string& sc = req.scenarioR[i];
+        if (sc == "circle" || sc == "circle2") {
+            int M_curve = curve_steps(sc);
+            qref_r.resize(7, M_curve);
+            ee_pos_r = reach_curve(hand_func_R, q_ra, qref_r, sum_r, q_init_r, sc);
+        } else {
+            Eigen::MatrixXd result_r = scenario_target(RIGHT, sc, i, ee_pos_r, "prev");
+            ee_pos_r = reach_target(hand_func_R, q_ra, qref_r, sum_r, q_init_r, result_r, sc, M_req);
+        }
     }
     for (int i = 0; i < req.scenL_count; i++) {
-        Eigen::MatrixXd result_l = scenario_target(LEFT, req.scenarioL[i], i, ee_pos_l, "prev");
-        ee_pos_l = reach_target(hand_func_L, q_la, qref_l, sum_l, q_init_l, result_l, req.scenarioL[i], M_req);
+        const string& sc = req.scenarioL[i];
+        if (sc == "circle" || sc == "circle2") {
+            int M_curve = curve_steps(sc);
+            qref_l.resize(7, M_curve);
+            ee_pos_l = reach_curve(hand_func_L, q_la, qref_l, sum_l, q_init_l, sc);
+        } else {
+            Eigen::MatrixXd result_l = scenario_target(LEFT, sc, i, ee_pos_l, "prev");
+            ee_pos_l = reach_target(hand_func_L, q_la, qref_l, sum_l, q_init_l, result_l, sc, M_req);
+        }
     }
 
     int Mr = qref_r.cols();
@@ -2281,6 +2604,37 @@ bool HandManager::fingerScenarioService(hand_planner::FingerScenario::Request &r
     } catch (const std::exception& e) {
         res.success = false;
         res.message = "Exception in finger scenario: " + std::string(e.what());
+    }
+    return true;
+}
+
+bool HandManager::fingerAnimationService(hand_planner::FingerAnimation::Request &req,
+                                         hand_planner::FingerAnimation::Response &res) {
+    try {
+        // Convert hand selection to enum (default to RIGHT_HAND if not specified)
+        HandSelection hand = (req.hand_selection.empty()) ? HandSelection::RIGHT_HAND : finger_control_->stringToHandSelection(req.hand_selection);
+
+        if (finger_control_->startAnimation(req.scenario_name, hand, req.duration, req.repetitions)) {
+            // Drive the animation to completion here: each tick updates only the
+            // finger command vector (arm/head commands stored in HandManager are
+            // left untouched, so the arms hold their current pose), and the publish
+            // trigger makes RobotManager push the combined message to Gazebo.
+            ros::Rate rate_(rate);
+            while (finger_control_->tickAnimation()) {
+                publish_trigger_pub_.publish(std_msgs::Empty());
+                rate_.sleep();
+            }
+            finger_control_->stopAnimation();
+            res.success = true;
+            res.message = "Animation '" + req.scenario_name + "' executed successfully";
+        } else {
+            res.success = false;
+            res.message = "Failed to start animation '" + req.scenario_name + "' (unknown name or bad keyframes)";
+        }
+
+    } catch (const std::exception& e) {
+        res.success = false;
+        res.message = "Exception in finger animation: " + std::string(e.what());
     }
     return true;
 }

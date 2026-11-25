@@ -75,6 +75,10 @@ public:
     // Core Kinematics and Control
     void HO_FK_palm(VectorXd q_in);
     void doQP(VectorXd q_in);
+    // Position-only variant (orientation term omitted): used for curve tracing,
+    // where a fixed orientation target near the Euler gimbal lock steals the
+    // velocity budget and stalls the trace. Requires update_hand(q, V, ...) first.
+    void doQP_position(VectorXd q_in);
 
     // Forward declaration for the Jacobian function. The implementation will be in S5_hand_jacobian.cpp
     void calculate_jacobian(const VectorXd& q_in, double angle_fix_shd, MatrixXd& J_palm, MatrixXd& J_w_palm);
