@@ -987,10 +987,15 @@ bool HandManager::single_hand(hand_planner::move_hand_single::Request &req,
         for (int i = 0; i < req.scen_count && i < (int)req.scenario.size(); ++i)
             if (req.scenario[i] == "drawA") has_drawA = true;
         std::string finger_scen = req.finger_scenario;
-        double finger_dur = req.t_total;
-        if (finger_scen.empty() && has_drawA) { finger_scen = "point"; finger_dur = 24.0; }
+        if (finger_scen.empty() && has_drawA) finger_scen = "point";
+        // FIX: run the finger animation for the EXACT arm trajectory duration
+        // (qref.cols()*T), not req.t_total - byebye adds a 4 s wave,
+        // shakeHands 5 s, multiple scenarios run back-to-back and the curve
+        // scenarios ignore t_total. Keyframed gestures repeat over their
+        // natural cycle until the arm motion ends, then hold the gesture.
+        double finger_dur = qref_r.cols() * T;
         const bool finger_anim_active = !finger_scen.empty() &&
-            finger_control_->startAnimation(finger_scen, HandSelection::RIGHT_HAND, finger_dur, 1);
+            finger_control_->startAnimationForDuration(finger_scen, HandSelection::RIGHT_HAND, finger_dur);
         if (!finger_scen.empty() && !finger_anim_active)
             ROS_WARN("Unknown finger_scenario '%s' - arm motion continues without finger animation.",
                      finger_scen.c_str());
@@ -1070,10 +1075,12 @@ bool HandManager::single_hand(hand_planner::move_hand_single::Request &req,
         for (int i = 0; i < req.scen_count && i < (int)req.scenario.size(); ++i)
             if (req.scenario[i] == "drawA") has_drawA = true;
         std::string finger_scen = req.finger_scenario;
-        double finger_dur = req.t_total;
-        if (finger_scen.empty() && has_drawA) { finger_scen = "point"; finger_dur = 24.0; }
+        if (finger_scen.empty() && has_drawA) finger_scen = "point";
+        // FIX: run the finger animation for the EXACT arm trajectory duration
+        // (qref.cols()*T), not req.t_total - see the right-hand branch.
+        double finger_dur = qref_l.cols() * T;
         const bool finger_anim_active = !finger_scen.empty() &&
-            finger_control_->startAnimation(finger_scen, HandSelection::LEFT_HAND, finger_dur, 1);
+            finger_control_->startAnimationForDuration(finger_scen, HandSelection::LEFT_HAND, finger_dur);
         if (!finger_scen.empty() && !finger_anim_active)
             ROS_WARN("Unknown finger_scenario '%s' - arm motion continues without finger animation.",
                      finger_scen.c_str());
@@ -2448,19 +2455,27 @@ bool HandManager::arm_home_service_handler(std_srvs::Empty::Request &req, std_sr
     ros::Rate rate_(rate);
 
     // ------------------------------------------------------------------
-    // SIMULATION PATH (FIX: arm_home moved elbows backward forever in Gazebo)
+    // SIMULATION PATH (FIX: arm_home moved elbows backward forever in Gazebo,
+    // and afterwards needed a SECOND call to reach the initial position)
     //
     // The hall-sensor homing state machine below waits for bits of
     // /surena/hall_state. In Gazebo nothing publishes that topic, so
     // hall_sensors_state stays all-zero and the ELBOW/YAW/PITCH/ROLL_HOMING
-    // states keep ramping their joints forever - the arms visibly drift
-    // backward and never stop. If no hall-sensor message has ever arrived,
-    // blend both arms smoothly from their current tracked pose to the
-    // default home pose instead (same pose the scenario handlers use as the
-    // initial state). The hardware homing path below is untouched.
+    // states keep ramping their joints forever.
+    //
+    // Gazebo command convention: the arm channels carry (absolute - baseline)
+    // deltas and the gazebo_bridge feeds them straight to the position
+    // controllers, so the physical joint angle EQUALS the sent value. The
+    // arms are therefore at their initial pose exactly when the sent value
+    // is 0. Blend the sent channels from their current value down to zero:
+    // the first publish continues from the current physical pose (no jump)
+    // and the final command of 0 puts both arms at the initial position in a
+    // single call. State/baseline are then reset to the node-start values so
+    // subsequent scenarios behave exactly like after launching Gazebo.
+    // The hardware homing path below is untouched.
     // ------------------------------------------------------------------
     if (!hall_sensors_seen_) {
-        ROS_INFO("arm_home: no hall-sensor messages seen (Gazebo) - blending arms directly to home pose.");
+        ROS_INFO("arm_home: no hall-sensor messages seen (Gazebo) - returning arms to the initial pose.");
 
         const double BLEND_TIME = 3.0;                 // s
         const int blend_steps = static_cast<int>(BLEND_TIME / T);
@@ -2470,20 +2485,27 @@ bool HandManager::arm_home_service_handler(std_srvs::Empty::Request &req, std_sr
         q_home_r << 10.0*d2r, -10.0*d2r, 0.0, -25.0*d2r, 0.0, 0.0, 0.0;
         q_home_l << 10.0*d2r,  10.0*d2r, 0.0, -25.0*d2r, 0.0, 0.0, 0.0;
 
-        // Start from the last tracked absolute state (or the home pose if unknown).
-        Eigen::VectorXd start_r = (q_right_state_.size() == 7) ? Eigen::VectorXd(q_right_state_) : q_home_r;
-        Eigen::VectorXd start_l = (q_left_state_.size()  == 7) ? Eigen::VectorXd(q_left_state_)  : q_home_l;
+        // Current sent value = tracked state - baseline (what the arms are
+        // physically at right now under the delta convention).
+        Eigen::VectorXd c0_r = Eigen::VectorXd::Zero(7), c0_l = Eigen::VectorXd::Zero(7);
+        if (q_right_state_.size() == 7 && q_right_baseline_.size() == 7)
+            c0_r = q_right_state_ - q_right_baseline_;
+        if (q_left_state_.size() == 7 && q_left_baseline_.size() == 7)
+            c0_l = q_left_state_ - q_left_baseline_;
 
-        // Baseline = start pose, so the sent arm channels (q_abs - baseline)
-        // start at zero and grow smoothly - no jump at the first publish.
-        q_right_baseline_ = start_r;
-        q_left_baseline_  = start_l;
+        // Final bookkeeping = the node-start condition (state = baseline =
+        // default home): subsequent scenario commands reproduce the tuned
+        // startup behaviour.
+        q_right_baseline_ = q_home_r;
+        q_left_baseline_  = q_home_l;
 
         for (int s = 0; s <= blend_steps && ros::ok(); ++s) {
             double a = static_cast<double>(s) / blend_steps;
             a = a * a * (3.0 - 2.0 * a);               // smoothstep
-            Eigen::VectorXd q_right_current = start_r + a * (q_home_r - start_r);
-            Eigen::VectorXd q_left_current  = start_l + a * (q_home_l - start_l);
+            // absolute values chosen so that (absolute - baseline) = (1-a)*c0:
+            // the sent arm channels decay smoothly from the current pose to 0.
+            Eigen::VectorXd q_right_current = q_home_r + (1.0 - a) * c0_r;
+            Eigen::VectorXd q_left_current  = q_home_l + (1.0 - a) * c0_l;
 
             Eigen::VectorXd q_send_right = q_right_current;
             q_send_right.head(4) = q_right_current.head(4) - q_right_baseline_.head(4);
@@ -2495,13 +2517,11 @@ bool HandManager::arm_home_service_handler(std_srvs::Empty::Request &req, std_sr
             rate_.sleep();
         }
 
-        // Persist the home pose exactly like the hardware path does.
-        q_right_baseline_ = q_home_r;
-        q_left_baseline_  = q_home_l;
+        // Persist the node-start condition (state = baseline = default home).
         q_right_state_    = q_home_r;
         q_left_state_     = q_home_l;
 
-        ROS_INFO("Arm homing completed successfully - arms blended to home pose (simulation).");
+        ROS_INFO("Arm homing completed successfully - arms back at the initial pose (simulation).");
         return true;
     }
 

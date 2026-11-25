@@ -96,6 +96,12 @@ public:
     // and stopAnimation() finalizes it.
     bool startAnimation(const std::string& name, HandSelection hand,
                         double duration_per_cycle, int repetitions);
+    // Convenience for arm scenarios: run the scenario so that it spans exactly
+    // total_time seconds. Keyframed scenarios repeat over their natural cycle
+    // (last keyframe time); static poses simply hold for total_time. When the
+    // animation ends, tickAnimation() holds the final gesture pose.
+    bool startAnimationForDuration(const std::string& name, HandSelection hand,
+                                   double total_time);
     bool tickAnimation();
     void stopAnimation();
     bool animationActive() const { return anim_active_; }

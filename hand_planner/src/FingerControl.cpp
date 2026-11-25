@@ -137,11 +137,49 @@ bool FingerControl::startAnimation(const std::string& name, HandSelection hand,
     return true;
 }
 
+bool FingerControl::startAnimationForDuration(const std::string& name, HandSelection hand,
+                                              double total_time) {
+    // Static poses (no keyframes) simply hold for the whole duration.
+    // Keyframed scenarios split in two:
+    //  - hold-type (last keyframe pose == the scenario's gesture target, e.g.
+    //    'point'): play ONE natural cycle, then tickAnimation() holds the
+    //    gesture for the rest of the arm motion;
+    //  - periodic (e.g. 'finger_wave', returns to open): repeat over the
+    //    natural cycle until the arm motion ends.
+    double cycle = 0.2;
+    int reps = 1;
+    {
+        std::lock_guard<std::mutex> lock(scenarios_mutex_);
+        auto it = scenarios_.find(name);
+        if (it == scenarios_.end()) {
+            ROS_ERROR("Finger animation scenario '%s' not found", name.c_str());
+            return false;
+        }
+        const auto& kfs = it->second.keyframes;
+        if (!kfs.empty()) {
+            cycle = std::max(0.2, kfs.back().first);
+            bool hold_type = (kfs.back().second == it->second.target_positions);
+            reps = hold_type ? 1 : std::max(1, (int)std::ceil(total_time / cycle));
+        } else {
+            cycle = std::max(0.2, total_time);
+        }
+    }
+    return startAnimation(name, hand, cycle, reps);
+}
+
 bool FingerControl::tickAnimation() {
     if (!anim_active_)
         return false;
     double t = std::chrono::duration<double>(std::chrono::steady_clock::now() - anim_start_).count();
     if (t >= anim_total_) {
+        // Hold the final gesture pose: apply the last keyframe (or the static
+        // target) once, then deactivate. The position controllers keep the
+        // last commanded pose, so the gesture persists until the arm scenario
+        // ends or a new finger command arrives.
+        const auto& kfs = anim_scenario_.keyframes;
+        std::vector<uint8_t> last = kfs.empty() ? anim_scenario_.target_positions
+                                                : kfs.back().second;
+        applyServoPositions(last, anim_hand_);
         anim_active_ = false;
         return false;
     }
