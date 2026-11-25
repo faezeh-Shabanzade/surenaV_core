@@ -1,30 +1,13 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- 
-  This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
-  Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
-  For more information, please see http://wiki.ros.org/sw_urdf_exporter
-  
-  This file has been manually refactored for clarity and organization.
--->
+<?xml version='1.0' encoding='utf-8'?>
 <robot name="surenaV">
-
-  <!-- ===================================================================================== -->
-  <!-- |                                 GAZEBO PLUGINS                                    | -->
-  <!-- ===================================================================================== -->
-  <!-- Gazebo ROS Control Plugin -->
   <gazebo>
     <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
       <robotNamespace>/surenaV</robotNamespace>
       <robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType>
     </plugin>
   </gazebo>
-
-
-  <!-- ===================================================================================== -->
-  <!-- |                                  LINKS & JOINTS                                   | -->
-  <!-- ===================================================================================== -->
-
-  <!-- BASE LINK -->
+  
+  
   <link name="base_link">
     <inertial>
       <origin xyz="0.05495 -0.00046591 1.1042" rpy="0 0 0" />
@@ -47,8 +30,8 @@
       </geometry>
     </collision>
   </link>
-
-  <!-- HEAD -->
+  
+  
   <link name="head_yaw">
     <inertial>
       <origin xyz="-0.0036927 0.00094602 0.055932" rpy="0 0 0" />
@@ -79,7 +62,6 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
   <link name="head_pitch">
     <inertial>
       <origin xyz="-0.00066333 -0.0291 0.067023" rpy="0 0 0" />
@@ -110,7 +92,6 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
   <link name="head_roll">
     <inertial>
       <origin xyz="-0.044066 -0.0015813 0.011272" rpy="0 0 0" />
@@ -141,8 +122,37 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
-  <!-- RIGHT LEG -->
+  
+  
+  <link name="camera_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="-1.57 -1.57 -1.57" />
+      <mass value="0.1" />
+      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.01 0.07 0.015" />
+      </geometry>
+      <material name="gray">
+        <color rgba="0.5 0.5 0.5 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.01 0.07 0.015" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="camera_joint" type="fixed">
+    <parent link="head_roll" />
+    <child link="camera_link" />
+    <origin xyz="0.085 0 0.068" rpy="0 0.349 0" />
+  </joint>
+  
+  
   <link name="r_hip_yaw">
     <inertial>
       <origin xyz="-0.069849 0.00016756 -0.078178" rpy="0 0 0" />
@@ -173,7 +183,6 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
   <link name="r_hip_roll">
     <inertial>
       <origin xyz="0.0035233 0.012172 -0.00020667" rpy="0 0 0" />
@@ -204,7 +213,6 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
   <link name="r_hip_pitch">
     <inertial>
       <origin xyz="0.0025608 0.012621 -0.178" rpy="0 0 0" />
@@ -235,7 +243,6 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
   <link name="r_knee">
     <inertial>
       <origin xyz="0.0066463 0.0011462 -0.085758" rpy="0 0 0" />
@@ -266,7 +273,6 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
   <link name="r_ankle_pitch">
     <inertial>
       <origin xyz="-1.3629E-05 0.0034024 0.0015737" rpy="0 0 0" />
@@ -297,7 +303,6 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
   <link name="r_ankle_roll">
     <inertial>
       <origin xyz="0.032019 -0.0010731 -0.039192" rpy="0 0 0" />
@@ -336,8 +341,8 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
-  <!-- LEFT LEG -->
+  
+  
   <link name="l_hip_yaw">
     <inertial>
       <origin xyz="-0.069213 0.00011237 -0.068241" rpy="0 0 0" />
@@ -368,7 +373,6 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
   <link name="l_hip_roll">
     <inertial>
       <origin xyz="0.0033793 -0.012172 0.00021004" rpy="0 0 0" />
@@ -399,7 +403,6 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
   <link name="l_hip_pitch">
     <inertial>
       <origin xyz="0.0024199 -0.02 -0.17825" rpy="0 0 0" />
@@ -430,7 +433,6 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
   <link name="l_knee">
     <inertial>
       <origin xyz="0.01 -0.01 -0.09" rpy="0 0 0" />
@@ -461,7 +463,6 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
   <link name="l_ankle_pitch">
     <inertial>
       <origin xyz="-1.3629E-05 -0.01 0.0015737" rpy="0 0 0" />
@@ -492,7 +493,6 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
   <link name="l_ankle_roll">
     <inertial>
       <origin xyz="0.032019 -0.0036731 -0.039192" rpy="0 0 0" />
@@ -531,8 +531,8 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
-  <!-- RIGHT ARM -->
+  
+  
   <link name="r_arm_pitch">
     <inertial>
       <origin xyz="-0.01 -0.04 0" rpy="0 0 0" />
@@ -563,7 +563,6 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
   <link name="r_arm_roll">
     <inertial>
       <origin xyz="-0.033422 -0.00012632 -0.083394" rpy="0 0 0" />
@@ -594,7 +593,6 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
   <link name="r_elbow_pitch">
     <inertial>
       <origin xyz="0 0 -0.06" rpy="0 0 0" />
@@ -625,7 +623,6 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
   <link name="r_forearm_roll">
     <inertial>
       <origin xyz="0 -0.030836 -0.02" rpy="0 0 0" />
@@ -656,7 +653,6 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
   <link name="r_forearm_link">
     <inertial>
       <origin xyz="0 -0.01 -0.07" rpy="0 0 0" />
@@ -687,7 +683,6 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
   <link name="r_hand_pitch">
     <inertial>
       <origin xyz="-0.01 3.8223E-08 -5.6648E-09" rpy="0 0 0" />
@@ -718,7 +713,6 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
   <link name="r_hand_roll">
     <inertial>
       <origin xyz="0.0041621 -0.017 -0.012245" rpy="0 0 0" />
@@ -749,12 +743,13 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
+  
 
   <link name="r_hand_link">
     <inertial>
-      <origin xyz="-0.01 0.01 -0.07" rpy="0 0 0" />
-      <mass value="0.24" />
-      <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0" />
+      <origin xyz="-0.0053846 -0.001034 -0.060078" rpy="0 0 0" />
+      <mass value="0.084186" />
+      <inertia ixx="3.2333e-05" ixy="-3.862e-08" ixz="5.8876e-07" iyy="1.7598e-05" iyz="2.5872e-06" izz="1.6781e-05" />
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
@@ -773,13 +768,450 @@
     </collision>
   </link>
   <joint name="r_hand_link_joint" type="fixed">
-    <origin xyz="0.049842 0.21551 0.7191" rpy="0 0 0" />
+    <origin xyz="1.833056558e-12 -0.01699999997 -7.100786917e-12" rpy="7.807340913e-10 -0.1416940181 -1.617545578e-09" />
     <parent link="r_hand_roll" />
     <child link="r_hand_link" />
-    <axis xyz="0 0 0" />
   </joint>
-
-  <!-- LEFT ARM -->
+  <link name="r_lower_finger1">
+    <inertial>
+      <origin xyz="0.0035326 0.028101 -0.09992" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="3.34414e-05" ixy="1.75716e-07" ixz="-3.13381e-06" iyy="3.86531e-05" iyz="1.62217e-06" izz="1e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_lower_finger1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_lower_finger1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_lower_finger1_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="r_hand_link" />
+    <child link="r_lower_finger1" />
+  </joint>
+  <link name="r_middle_finger1">
+    <inertial>
+      <origin xyz="-0.00273 0.0006386 -0.011794" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="1.68538e-05" ixy="2.33998e-07" ixz="-4.07016e-06" iyy="1.75785e-05" iyz="4.60698e-07" izz="1e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_middle_finger1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.10196 0.10196 0.10196 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_middle_finger1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_middle_finger1_joint" type="revolute">
+    <origin xyz="0.0069474 0.028864 -0.11666" rpy="0 0 0" />
+    <parent link="r_lower_finger1" />
+    <child link="r_middle_finger1" />
+    <axis xyz="0 1 0" />
+    <limit lower="-1.57" upper="1.57" effort="1.0" velocity="2.0" />
+    <dynamics damping="0.05" friction="0.02" />
+  </joint>
+  <link name="r_upper_finger1">
+    <inertial>
+      <origin xyz="-0.0071263 0.00057734 -0.014071" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="1.57348e-05" ixy="2.9583e-07" ixz="-5.26877e-06" iyy="1.93408e-05" iyz="5.26721e-07" izz="1e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_upper_finger1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_upper_finger1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_upper_finger1_joint" type="revolute">
+    <origin xyz="-0.00886322903035278 0.00146267429612707 -0.0260004805037224" rpy="0 0 0" />
+    <parent link="r_middle_finger1" />
+    <child link="r_upper_finger1" />
+    <axis xyz="0 1 0" />
+    <limit lower="-1.57" upper="1.57" effort="1.0" velocity="2.0" />
+    <dynamics damping="0.05" friction="0.02" />
+  </joint>
+  <link name="r_lower_finger2">
+    <inertial>
+      <origin xyz="0.0034983 0.009722 -0.10214" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="3.38404e-05" ixy="7.16243e-08" ixz="-3.35362e-06" iyy="3.91582e-05" iyz="6.26797e-07" izz="1e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_lower_finger2.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_lower_finger2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_lower_finger2_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="r_hand_link" />
+    <child link="r_lower_finger2" />
+  </joint>
+  <link name="r_middle_finger2">
+    <inertial>
+      <origin xyz="-0.0039563 0.00038454 -0.017111" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="2.44841e-05" ixy="7.48094e-08" ixz="-2.68231e-06" iyy="2.41434e-05" iyz="3.48645e-07" izz="1e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_middle_finger2.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_middle_finger2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_middle_finger2_joint" type="revolute">
+    <origin xyz="0.00695556128749314 0.00983065601761688 -0.117391522511276" rpy="0 0 0" />
+    <parent link="r_lower_finger2" />
+    <child link="r_middle_finger2" />
+    <axis xyz="0 1 0" />
+    <limit lower="-1.57" upper="1.57" effort="1.0" velocity="2.0" />
+    <dynamics damping="0.05" friction="0.02" />
+  </joint>
+  <link name="r_upper_finger2">
+    <inertial>
+      <origin xyz="-0.0074591 0.0003504 -0.014822" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="1.55936e-05" ixy="1.45476e-07" ixz="-5.63352e-06" iyy="1.94694e-05" iyz="2.42185e-07" izz="1e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_upper_finger2.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_upper_finger2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_upper_finger2_joint" type="revolute">
+    <origin xyz="-0.00850883559736987 0.0006421760023878 -0.0299086914919216" rpy="0 0 0" />
+    <parent link="r_middle_finger2" />
+    <child link="r_upper_finger2" />
+    <axis xyz="0 1 0" />
+    <limit lower="-1.57" upper="1.57" effort="1.0" velocity="2.0" />
+    <dynamics damping="0.05" friction="0.02" />
+  </joint>
+  <link name="r_lower_finger3">
+    <inertial>
+      <origin xyz="0.0035364 -0.0082723 -0.10087" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="3.37492e-05" ixy="1.27076e-08" ixz="-3.16744e-06" iyy="3.91004e-05" iyz="1.17503e-07" izz="1e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_lower_finger3.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_lower_finger3.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_lower_finger3_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="r_hand_link" />
+    <child link="r_lower_finger3" />
+  </joint>
+  <link name="r_middle_finger3">
+    <inertial>
+      <origin xyz="-0.0022971 1.0402E-05 -0.011903" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="1.7711e-05" ixy="1.91404e-08" ixz="-3.93726e-06" iyy="1.81857e-05" iyz="6.63573e-08" izz="1e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_middle_finger3.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.10196 0.10196 0.10196 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_middle_finger3.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_middle_finger3_joint" type="revolute">
+    <origin xyz="0.00695651373287867 -0.00837534268084635 -0.117626662194764" rpy="0 0 0" />
+    <parent link="r_lower_finger3" />
+    <child link="r_middle_finger3" />
+    <axis xyz="0 1 0" />
+    <limit lower="-1.57" upper="1.57" effort="1.0" velocity="2.0" />
+    <dynamics damping="0.05" friction="0.02" />
+  </joint>
+  <link name="r_upper_finger3">
+    <inertial>
+      <origin xyz="-0.0052292 -0.00016938 -0.014891" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="1.95327e-05" ixy="1.94838e-08" ixz="-5.00012e-06" iyy="2.22532e-05" iyz="4.80293e-08" izz="1e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_upper_finger3.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_upper_finger3.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_upper_finger3_joint" type="revolute">
+    <origin xyz="-0.00790082295281594 0.000106311782708183 -0.0263497285464785" rpy="0 0 0" />
+    <parent link="r_middle_finger3" />
+    <child link="r_upper_finger3" />
+    <axis xyz="0 1 0" />
+    <limit lower="-1.57" upper="1.57" effort="1.0" velocity="2.0" />
+    <dynamics damping="0.05" friction="0.02" />
+  </joint>
+  <link name="r_lower_finger4">
+    <inertial>
+      <origin xyz="0.0034836 -0.02654 -0.10207" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="3.37899e-05" ixy="-1.02798e-07" ixz="-3.35079e-06" iyy="3.90856e-05" iyz="-8.98518e-07" izz="1e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_lower_finger4.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_lower_finger4.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_lower_finger4_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="r_hand_link" />
+    <child link="r_lower_finger4" />
+  </joint>
+  <link name="r_middle_finger4">
+    <inertial>
+      <origin xyz="-0.0015149 -0.00046826 -0.0087007" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="1.45259e-05" ixy="-8.32542e-08" ixz="-2.81688e-06" iyy="1.41488e-05" iyz="-8.63764e-08" izz="1e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_middle_finger4.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.10196 0.10196 0.10196 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_middle_finger4.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_middle_finger4_joint" type="revolute">
+    <origin xyz="0.00695553845313643 -0.0270136127018916 -0.117385885166202" rpy="0 0 0" />
+    <parent link="r_lower_finger4" />
+    <child link="r_middle_finger4" />
+    <axis xyz="0 1 0" />
+    <limit lower="-1.57" upper="1.57" effort="1.0" velocity="2.0" />
+    <dynamics damping="0.05" friction="0.02" />
+  </joint>
+  <link name="r_upper_finger4">
+    <inertial>
+      <origin xyz="-0.0057682 -0.00039409 -0.012762" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="1.52423e-05" ixy="-1.28733e-07" ixz="-4.11984e-06" iyy="1.76976e-05" iyz="-2.39737e-07" izz="1e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_upper_finger4.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_upper_finger4.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_upper_finger4_joint" type="revolute">
+    <origin xyz="-0.00561127970512837 -0.000631082907236608 -0.0204616171021506" rpy="0 0 0" />
+    <parent link="r_middle_finger4" />
+    <child link="r_upper_finger4" />
+    <axis xyz="0 1 0" />
+    <limit lower="-1.57" upper="1.57" effort="1.0" velocity="2.0" />
+    <dynamics damping="0.05" friction="0.02" />
+  </joint>
+  <link name="r_lower_thumb">
+    <inertial>
+      <origin xyz="-0.001227 0.0091553 -0.0002099" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="1.35208e-05" ixy="3.7688e-06" ixz="2.2661e-07" iyy="1e-05" iyz="1.9583e-06" izz="2.00954e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_lower_thumb.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_lower_thumb.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_lower_thumb_joint" type="revolute">
+    <origin xyz="-0.007723 0.028342 -0.029478" rpy="0 0 0" />
+    <parent link="r_hand_link" />
+    <child link="r_lower_thumb" />
+    <axis xyz="-0.16979 -0.25104 -0.95297" />
+    <limit lower="-1.57" upper="1.57" effort="1.0" velocity="2.0" />
+    <dynamics damping="0.05" friction="0.02" />
+  </joint>
+  <link name="r_middle_thumb">
+    <inertial>
+      <origin xyz="-0.00040605 0.012742 -0.036558" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="3.12987e-05" ixy="1.81161e-09" ixz="7.90561e-10" iyy="2.7899e-05" iyz="6.21416e-06" izz="1e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_middle_thumb.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_middle_thumb.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_middle_thumb_joint" type="revolute">
+    <origin xyz="0.00072958 0.020961 0.0032677" rpy="0 0.097339 -0.28258" />
+    <parent link="r_lower_thumb" />
+    <child link="r_middle_thumb" />
+    <axis xyz="-1 0 0" />
+    <limit lower="-1.57" upper="1.57" effort="1.0" velocity="2.0" />
+    <dynamics damping="0.05" friction="0.02" />
+  </joint>
+  <link name="r_upper_thumb">
+    <inertial>
+      <origin xyz="0.00056213 0.0024389 -0.0098238" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="1e-05" ixy="1.27078e-09" ixz="-7.93299e-09" iyy="1.19626e-05" iyz="-5.75922e-07" izz="1.13039e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_upper_thumb.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/r_upper_thumb.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="r_upper_thumb_joint" type="revolute">
+    <origin xyz="0 0.016882 -0.060822" rpy="0 0 0" />
+    <parent link="r_middle_thumb" />
+    <child link="r_upper_thumb" />
+    <axis xyz="-1 0 0" />
+    <limit lower="-1.57" upper="1.57" effort="1.0" velocity="2.0" />
+    <dynamics damping="0.05" friction="0.02" />
+  </joint>
+  
+  
   <link name="l_arm_pitch">
     <inertial>
       <origin xyz="-0.01 0.042591 -0.00039657" rpy="0 0 0" />
@@ -810,7 +1242,6 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
   <link name="l_arm_roll">
     <inertial>
       <origin xyz="-0.033422 0.00012632 -0.083394" rpy="0 0 0" />
@@ -841,7 +1272,6 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
   <link name="l_elbow_pitch">
     <inertial>
       <origin xyz="2.12E-06 -0.0028416 -0.06" rpy="0 0 0" />
@@ -872,7 +1302,6 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
   <link name="l_forearm_roll">
     <inertial>
       <origin xyz="0 0.030836 -0.02" rpy="0 0 0" />
@@ -903,7 +1332,6 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
   <link name="l_forearm_link">
     <inertial>
       <origin xyz="-0.00059087 0.01 -0.072286" rpy="0 0 1.57" />
@@ -934,7 +1362,6 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
   <link name="l_hand_pitch">
     <inertial>
       <origin xyz="-0.01 3.8223E-08 5.6648E-09" rpy="0 0 0" />
@@ -965,7 +1392,6 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
   <link name="l_hand_roll">
     <inertial>
       <origin xyz="0.0041621 0.02 -0.012245" rpy="0 0 0" />
@@ -996,12 +1422,13 @@
     <limit lower="-1.57" upper="1.57" effort="1000" velocity="0.5" />
     <dynamics damping="0.7" friction="0.3" />
   </joint>
-
+  
+ 
   <link name="l_hand_link">
     <inertial>
-      <origin xyz="0.0031894 0.011871 -0.076128" rpy="0 0 0" />
-      <mass value="0.24" />
-      <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0" />
+      <origin xyz="-0.0021692 0.0010462 -0.060107" rpy="0 0 0" />
+      <mass value="0.084182" />
+      <inertia ixx="3.2316e-05" ixy="6.9636e-08" ixz="7.7369e-07" iyy="1.7598e-05" iyz="-2.586e-06" izz="1.6795e-05" />
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
@@ -1020,45 +1447,450 @@
     </collision>
   </link>
   <joint name="l_hand_link_joint" type="fixed">
-    <origin xyz="0 0 0" rpy="0 0 0" />
+    <origin xyz="-0.002474945523 0.01700000008 -0.0003530511356" rpy="-0.000140799751 -0.1298011257 -4.352841977e-06" />
     <parent link="l_hand_roll" />
     <child link="l_hand_link" />
-    <axis xyz="0 0 0" />
   </joint>
-
-  <!-- CAMERA -->
-  <link name="camera_link">
+  <link name="l_lower_finger1">
     <inertial>
-      <origin xyz="0 0 0" rpy="-1.57 -1.57 -1.57"/>
-      <mass value="0.1"/>
-      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
+      <origin xyz="0.0072126 -0.028058 -0.099346" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="3.37542e-05" ixy="-1.57159e-07" ixz="-2.87477e-06" iyy="3.89325e-05" iyz="-1.63179e-06" izz="1e-05" />
     </inertial>
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <box size="0.01 0.07 0.015"/>
+        <mesh filename="package://surenaV_description/meshes/l_lower_finger1.STL" />
       </geometry>
-      <material name="gray">
-        <color rgba="0.5 0.5 0.5 1"/>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1" />
       </material>
     </visual>
     <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <box size="0.01 0.07 0.015"/>
+        <mesh filename="package://surenaV_description/meshes/l_lower_finger1.STL" />
       </geometry>
     </collision>
   </link>
-  <joint name="camera_joint" type="fixed">
-    <parent link="head_roll"/>
-    <child link="camera_link"/>
-    <origin xyz="0.085 0 0.068" rpy="0 0.349 0"/>
+  <joint name="l_lower_finger1_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="l_hand_link" />
+    <child link="l_lower_finger1" />
+  </joint>
+  <link name="l_middle_finger1">
+    <inertial>
+      <origin xyz="0.00137239882443546 5.20586207734888E-05 -0.0154352694517102" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="2.26253e-05" ixy="7.03709e-09" ixz="1.49923e-06" iyy="2.14123e-05" iyz="3.89817e-08" izz="1e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_middle_finger1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.101960784313725 0.101960784313725 0.101960784313725 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_middle_finger1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_middle_finger1_joint" type="revolute">
+    <origin xyz="0.010831 -0.029001 -0.11603" rpy="-0.056251 -5.0283E-05 -0.00089296" />
+    <parent link="l_lower_finger1" />
+    <child link="l_middle_finger1" />
+    <axis xyz="0 1 0" />
+    <limit lower="-1.57" upper="1.57" effort="1.0" velocity="2.0" />
+    <dynamics damping="0.05" friction="0.02" />
+  </joint>
+  <link name="l_upper_finger1">
+    <inertial>
+      <origin xyz="-0.0060096 -0.00015648 -0.014593" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="1.79797e-05" ixy="-6.46787e-10" ixz="-5.18801e-06" iyy="2.10848e-05" iyz="-1.3072e-09" izz="1e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_upper_finger1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_upper_finger1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_upper_finger1_joint" type="revolute">
+    <origin xyz="0.00027453 0 -0.027508" rpy="0 0 0" />
+    <parent link="l_middle_finger1" />
+    <child link="l_upper_finger1" />
+    <axis xyz="0 1 0" />
+    <limit lower="-1.57" upper="1.57" effort="1.0" velocity="2.0" />
+    <dynamics damping="0.05" friction="0.02" />
+  </joint>
+  <link name="l_lower_finger2">
+    <inertial>
+      <origin xyz="0.0072127 -0.0097075 -0.10206" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="3.41782e-05" ixy="-6.42448e-08" ixz="-3.09287e-06" iyy="3.94603e-05" iyz="-6.28274e-07" izz="1e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_lower_finger2.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_lower_finger2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_lower_finger2_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="l_hand_link" />
+    <child link="l_lower_finger2" />
+  </joint>
+  <link name="l_middle_finger2">
+    <inertial>
+      <origin xyz="-0.00020536 -0.00020452 -0.017559" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="2.61707e-05" ixy="1.05295e-08" ixz="6.07595e-07" iyy="2.53429e-05" iyz="5.58652e-08" izz="1e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_middle_finger2.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_middle_finger2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_middle_finger2_joint" type="revolute">
+    <origin xyz="0.010851 -0.010033 -0.11727" rpy="-0.021349 0 -0.00033823" />
+    <parent link="l_lower_finger2" />
+    <child link="l_middle_finger2" />
+    <axis xyz="0 1 0" />
+    <limit lower="-1.57" upper="1.57" effort="1.0" velocity="2.0" />
+    <dynamics damping="0.05" friction="0.02" />
+  </joint>
+  <link name="l_upper_finger2">
+    <inertial>
+      <origin xyz="-0.0063757 0.00051301 -0.015323" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="1.77644e-05" ixy="2.37063e-08" ixz="-5.61678e-06" iyy="2.11324e-05" iyz="4.42276e-08" izz="1e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_upper_finger2.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_upper_finger2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_upper_finger2_joint" type="revolute">
+    <origin xyz="-0.0019201 0 -0.031043" rpy="0 0 0" />
+    <parent link="l_middle_finger2" />
+    <child link="l_upper_finger2" />
+    <axis xyz="0 1 0" />
+    <limit lower="-1.57" upper="1.57" effort="1.0" velocity="2.0" />
+    <dynamics damping="0.05" friction="0.02" />
+  </joint>
+  <link name="l_lower_finger3">
+    <inertial>
+      <origin xyz="0.0072356 0.0082866 -0.10079" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="3.40654e-05" ixy="-1.1003e-08" ixz="-2.90499e-06" iyy="3.93835e-05" iyz="-1.14356e-07" izz="1e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_lower_finger3.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_lower_finger3.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_lower_finger3_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="l_hand_link" />
+    <child link="l_lower_finger3" />
+  </joint>
+  <link name="l_middle_finger3">
+    <inertial>
+      <origin xyz="-0.00054619 5.2011E-05 -0.015487" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="2.32061e-05" ixy="1.19162e-08" ixz="-9.73038e-08" iyy="2.17943e-05" iyz="3.86806e-08" izz="1e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_middle_finger3.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.10196 0.10196 0.10196 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_middle_finger3.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_middle_finger3_joint" type="revolute">
+    <origin xyz="0.010855 0.0082212 -0.1175" rpy="-0.0038977 0 -6.0083E-05" />
+    <parent link="l_lower_finger3" />
+    <child link="l_middle_finger3" />
+    <axis xyz="0 1 0" />
+    <limit lower="-1.57" upper="1.57" effort="1.0" velocity="2.0" />
+    <dynamics damping="0.05" friction="0.02" />
+  </joint>
+  <link name="l_upper_finger3">
+    <inertial>
+      <origin xyz="-0.0027036 -0.00015646 -0.015549" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="2.4208e-05" ixy="-5.1305e-10" ixz="-3.6823e-06" iyy="2.57782e-05" iyz="-1.71555e-09" izz="1e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_upper_finger3.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_upper_finger3.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_upper_finger3_joint" type="revolute">
+    <origin xyz="-0.0031281 0 -0.027331" rpy="0 0 0" />
+    <parent link="l_middle_finger3" />
+    <child link="l_upper_finger3" />
+    <axis xyz="0 1 0" />
+    <limit lower="-1.57" upper="1.57" effort="1.0" velocity="2.0" />
+    <dynamics damping="0.05" friction="0.02" />
+  </joint>
+  <link name="l_lower_finger4">
+    <inertial>
+      <origin xyz="0.0071969 0.026555 -0.10198" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="3.41255e-05" ixy="9.32229e-08" ixz="-3.09041e-06" iyy="3.93847e-05" iyz="9.10687e-07" izz="1e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_lower_finger4.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_lower_finger4.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_lower_finger4_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="l_hand_link" />
+    <child link="l_lower_finger4" />
+  </joint>
+  <link name="l_middle_finger4">
+    <inertial>
+      <origin xyz="-0.00029149 -0.00020051 -0.0088374" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="1.63401e-05" ixy="-2.60144e-09" ixz="-2.241e-06" iyy="1.51976e-05" iyz="4.31035e-08" izz="1e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_middle_finger4.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.10196 0.10196 0.10196 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_middle_finger4.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_middle_finger4_joint" type="revolute">
+    <origin xyz="0.010851 0.02703 -0.11726" rpy="0.031004 -1.5386E-05 0.0004961" />
+    <parent link="l_lower_finger4" />
+    <child link="l_middle_finger4" />
+    <axis xyz="0 1 0" />
+    <limit lower="-1.57" upper="1.57" effort="1.0" velocity="2.0" />
+    <dynamics damping="0.05" friction="0.02" />
+  </joint>
+  <link name="l_upper_finger4">
+    <inertial>
+      <origin xyz="-0.0022767 -7.1402E-07 -0.013824" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="2.04525e-05" ixy="-1.70095e-09" ixz="-2.73154e-06" iyy="2.13665e-05" iyz="-3.33069e-09" izz="1e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_upper_finger4.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_upper_finger4.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_upper_finger4_joint" type="revolute">
+    <origin xyz="-0.0027184 0 -0.021052" rpy="0 0 0" />
+    <parent link="l_middle_finger4" />
+    <child link="l_upper_finger4" />
+    <axis xyz="0 1 0" />
+    <limit lower="-1.57" upper="1.57" effort="1.0" velocity="2.0" />
+    <dynamics damping="0.05" friction="0.02" />
+  </joint>
+  <link name="l_lower_thumb">
+    <inertial>
+      <origin xyz="-0.0046584 -0.0070762 -0.0046385" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="1e-05" ixy="-3.83813e-06" ixz="3.91863e-07" iyy="1.11531e-05" iyz="-1.4486e-06" izz="1.80163e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_lower_thumb.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_lower_thumb.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_lower_thumb_joint" type="revolute">
+    <origin xyz="-0.0046343 -0.028715 -0.02811" rpy="0 0 0" />
+    <parent link="l_hand_link" />
+    <child link="l_lower_thumb" />
+    <axis xyz="0.15845 -0.25118 0.95489" />
+    <limit lower="-1.57" upper="1.57" effort="1.0" velocity="2.0" />
+    <dynamics damping="0.05" friction="0.02" />
+  </joint>
+  <link name="l_middle_thumb">
+    <inertial>
+      <origin xyz="-0.00051303 -0.01519 -0.035608" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="2.86485e-05" ixy="-6.51948e-08" ixz="-1.14654e-07" iyy="2.46904e-05" iyz="-6.74504e-06" izz="1e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_middle_thumb.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_middle_thumb.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_middle_thumb_joint" type="revolute">
+    <origin xyz="-0.0080938 -0.015469 -0.013199" rpy="0.0001434 0.1688 2.841E-05" />
+    <parent link="l_lower_thumb" />
+    <child link="l_middle_thumb" />
+    <axis xyz="1 0 0" />
+    <limit lower="-1.57" upper="1.57" effort="1.0" velocity="2.0" />
+    <dynamics damping="0.05" friction="0.02" />
+  </joint>
+  <link name="l_upper_thumb">
+    <inertial>
+      <origin xyz="-0.00029241 -0.0040276 -0.0092843" rpy="0 0 0" />
+      <mass value="0.03" />
+      <inertia ixx="1e-05" ixy="3.83584e-08" ixz="1.44809e-08" iyy="1.21316e-05" iyz="4.36774e-07" izz="1.11326e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_upper_thumb.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://surenaV_description/meshes/l_upper_thumb.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="l_upper_thumb_joint" type="revolute">
+    <origin xyz="-0.00035389 -0.020972 -0.059535" rpy="0 0 0" />
+    <parent link="l_middle_thumb" />
+    <child link="l_upper_thumb" />
+    <axis xyz="0.99986 -0.016872 0" />
+    <limit lower="-1.57" upper="1.57" effort="1.0" velocity="2.0" />
+    <dynamics damping="0.05" friction="0.02" />
   </joint>
   
-
-  <!-- ===================================================================================== -->
-  <!-- |                             CAMERA AND SENSORS                                    | -->
-  <!-- ===================================================================================== -->
+  
   <gazebo reference="camera_link">
     <sensor name="camera1" type="depth">
       <always_on>true</always_on>
@@ -1101,13 +1933,6 @@
       </plugin>
     </sensor>
   </gazebo>
-
-
-  <!-- ===================================================================================== -->
-  <!-- |                       PHYSICAL PROPERTIES (GAZEBO)                                | -->
-  <!-- ===================================================================================== -->
-
-  <!-- HEAD -->
   <gazebo reference="head_yaw">
     <mu1>0.9</mu1>
     <mu2>0.9</mu2>
@@ -1120,8 +1945,6 @@
     <mu1>0.9</mu1>
     <mu2>0.9</mu2>
   </gazebo>
-
-  <!-- RIGHT LEG -->
   <gazebo reference="r_hip_yaw">
     <mu1>0.9</mu1>
     <mu2>0.9</mu2>
@@ -1150,8 +1973,6 @@
     <slip1>0</slip1>
     <slip2>0</slip2>
   </gazebo>
-
-  <!-- LEFT LEG -->
   <gazebo reference="l_hip_yaw">
     <mu1>0.9</mu1>
     <mu2>0.9</mu2>
@@ -1180,8 +2001,6 @@
     <slip1>0</slip1>
     <slip2>0</slip2>
   </gazebo>
-
-  <!-- RIGHT ARM -->
   <gazebo reference="r_arm_pitch">
     <mu1>0.9</mu1>
     <mu2>0.9</mu2>
@@ -1214,8 +2033,6 @@
     <mu1>0.9</mu1>
     <mu2>0.9</mu2>
   </gazebo>
-
-  <!-- LEFT ARM -->
   <gazebo reference="l_arm_pitch">
     <mu1>0.9</mu1>
     <mu2>0.9</mu2>
@@ -1248,13 +2065,194 @@
     <mu1>0.9</mu1>
     <mu2>0.9</mu2>
   </gazebo>
-
-
-  <!-- ===================================================================================== -->
-  <!-- |                                  TRANSMISSIONS                                    | -->
-  <!-- ===================================================================================== -->
-
-  <!-- HEAD -->
+  <gazebo reference="r_lower_thumb_joint">
+    <implicitSpringDamper>true</implicitSpringDamper>
+  </gazebo>
+  <gazebo reference="r_middle_finger4_joint">
+    <implicitSpringDamper>true</implicitSpringDamper>
+  </gazebo>
+  <gazebo reference="r_upper_finger4_joint">
+    <implicitSpringDamper>true</implicitSpringDamper>
+  </gazebo>
+  <gazebo reference="r_middle_finger3_joint">
+    <implicitSpringDamper>true</implicitSpringDamper>
+  </gazebo>
+  <gazebo reference="r_upper_finger3_joint">
+    <implicitSpringDamper>true</implicitSpringDamper>
+  </gazebo>
+  <gazebo reference="r_middle_finger2_joint">
+    <implicitSpringDamper>true</implicitSpringDamper>
+  </gazebo>
+  <gazebo reference="r_upper_finger2_joint">
+    <implicitSpringDamper>true</implicitSpringDamper>
+  </gazebo>
+  <gazebo reference="r_middle_finger1_joint">
+    <implicitSpringDamper>true</implicitSpringDamper>
+  </gazebo>
+  <gazebo reference="r_upper_finger1_joint">
+    <implicitSpringDamper>true</implicitSpringDamper>
+  </gazebo>
+  <gazebo reference="r_middle_thumb_joint">
+    <implicitSpringDamper>true</implicitSpringDamper>
+  </gazebo>
+  <gazebo reference="r_upper_thumb_joint">
+    <implicitSpringDamper>true</implicitSpringDamper>
+  </gazebo>
+  <gazebo reference="l_lower_thumb_joint">
+    <implicitSpringDamper>true</implicitSpringDamper>
+  </gazebo>
+  <gazebo reference="l_middle_finger4_joint">
+    <implicitSpringDamper>true</implicitSpringDamper>
+  </gazebo>
+  <gazebo reference="l_upper_finger4_joint">
+    <implicitSpringDamper>true</implicitSpringDamper>
+  </gazebo>
+  <gazebo reference="l_middle_finger3_joint">
+    <implicitSpringDamper>true</implicitSpringDamper>
+  </gazebo>
+  <gazebo reference="l_upper_finger3_joint">
+    <implicitSpringDamper>true</implicitSpringDamper>
+  </gazebo>
+  <gazebo reference="l_middle_finger2_joint">
+    <implicitSpringDamper>true</implicitSpringDamper>
+  </gazebo>
+  <gazebo reference="l_upper_finger2_joint">
+    <implicitSpringDamper>true</implicitSpringDamper>
+  </gazebo>
+  <gazebo reference="l_middle_finger1_joint">
+    <implicitSpringDamper>true</implicitSpringDamper>
+  </gazebo>
+  <gazebo reference="l_upper_finger1_joint">
+    <implicitSpringDamper>true</implicitSpringDamper>
+  </gazebo>
+  <gazebo reference="l_middle_thumb_joint">
+    <implicitSpringDamper>true</implicitSpringDamper>
+  </gazebo>
+  <gazebo reference="l_upper_thumb_joint">
+    <implicitSpringDamper>true</implicitSpringDamper>
+  </gazebo>
+  <gazebo reference="r_lower_thumb">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="r_lower_finger1">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="r_lower_finger2">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="r_lower_finger3">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="r_lower_finger4">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="r_middle_finger4">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="r_upper_finger4">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="r_middle_finger3">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="r_upper_finger3">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="r_middle_finger2">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="r_upper_finger2">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="r_middle_finger1">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="r_upper_finger1">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="r_middle_thumb">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="r_upper_thumb">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="l_lower_thumb">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="l_lower_finger1">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="l_lower_finger2">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="l_lower_finger3">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="l_lower_finger4">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="l_middle_finger4">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="l_upper_finger4">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="l_middle_finger3">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="l_upper_finger3">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="l_middle_finger2">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="l_upper_finger2">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="l_middle_finger1">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="l_upper_finger1">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="l_middle_thumb">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  <gazebo reference="l_upper_thumb">
+    <mu1>1.2</mu1>
+    <mu2>1.2</mu2>
+  </gazebo>
+  
+  
   <transmission name="head_yaw_tran">
     <type>transmission_interface/SimpleTransmission</type>
     <joint name="head_yaw_joint">
@@ -1285,8 +2283,6 @@
       <mechanicalReduction>1</mechanicalReduction>
     </actuator>
   </transmission>
-
-  <!-- RIGHT LEG -->
   <transmission name="r_hip_yaw_tran">
     <type>transmission_interface/SimpleTransmission</type>
     <joint name="r_hip_yaw_joint">
@@ -1347,8 +2343,6 @@
       <mechanicalReduction>1</mechanicalReduction>
     </actuator>
   </transmission>
-
-  <!-- LEFT LEG -->
   <transmission name="l_hip_yaw_tran">
     <type>transmission_interface/SimpleTransmission</type>
     <joint name="l_hip_yaw_joint">
@@ -1409,8 +2403,6 @@
       <mechanicalReduction>1</mechanicalReduction>
     </actuator>
   </transmission>
-
-  <!-- RIGHT ARM -->
   <transmission name="r_arm_pitch_tran">
     <type>transmission_interface/SimpleTransmission</type>
     <joint name="r_arm_pitch_joint">
@@ -1481,8 +2473,6 @@
       <mechanicalReduction>1</mechanicalReduction>
     </actuator>
   </transmission>
-
-  <!-- LEFT ARM -->
   <transmission name="l_arm_pitch_tran">
     <type>transmission_interface/SimpleTransmission</type>
     <joint name="l_arm_pitch_joint">
@@ -1550,6 +2540,226 @@
     </joint>
     <actuator name="l_hand_roll_motor">
       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  <transmission name="r_lower_thumb_tran">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="r_lower_thumb_joint">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="r_lower_thumb_motor">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  <transmission name="r_middle_finger4_tran">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="r_middle_finger4_joint">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="r_middle_finger4_motor">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  <transmission name="r_upper_finger4_tran">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="r_upper_finger4_joint">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="r_upper_finger4_motor">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  <transmission name="r_middle_finger3_tran">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="r_middle_finger3_joint">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="r_middle_finger3_motor">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  <transmission name="r_upper_finger3_tran">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="r_upper_finger3_joint">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="r_upper_finger3_motor">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  <transmission name="r_middle_finger2_tran">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="r_middle_finger2_joint">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="r_middle_finger2_motor">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  <transmission name="r_upper_finger2_tran">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="r_upper_finger2_joint">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="r_upper_finger2_motor">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  <transmission name="r_middle_finger1_tran">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="r_middle_finger1_joint">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="r_middle_finger1_motor">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  <transmission name="r_upper_finger1_tran">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="r_upper_finger1_joint">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="r_upper_finger1_motor">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  <transmission name="r_middle_thumb_tran">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="r_middle_thumb_joint">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="r_middle_thumb_motor">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  <transmission name="r_upper_thumb_tran">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="r_upper_thumb_joint">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="r_upper_thumb_motor">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  <transmission name="l_lower_thumb_tran">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="l_lower_thumb_joint">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="l_lower_thumb_motor">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  <transmission name="l_middle_finger4_tran">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="l_middle_finger4_joint">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="l_middle_finger4_motor">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  <transmission name="l_upper_finger4_tran">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="l_upper_finger4_joint">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="l_upper_finger4_motor">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  <transmission name="l_middle_finger3_tran">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="l_middle_finger3_joint">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="l_middle_finger3_motor">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  <transmission name="l_upper_finger3_tran">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="l_upper_finger3_joint">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="l_upper_finger3_motor">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  <transmission name="l_middle_finger2_tran">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="l_middle_finger2_joint">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="l_middle_finger2_motor">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  <transmission name="l_upper_finger2_tran">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="l_upper_finger2_joint">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="l_upper_finger2_motor">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  <transmission name="l_middle_finger1_tran">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="l_middle_finger1_joint">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="l_middle_finger1_motor">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  <transmission name="l_upper_finger1_tran">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="l_upper_finger1_joint">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="l_upper_finger1_motor">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  <transmission name="l_middle_thumb_tran">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="l_middle_thumb_joint">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="l_middle_thumb_motor">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  <transmission name="l_upper_thumb_tran">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="l_upper_thumb_joint">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="l_upper_thumb_motor">
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
       <mechanicalReduction>1</mechanicalReduction>
     </actuator>
   </transmission>
